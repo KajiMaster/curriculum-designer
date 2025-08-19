@@ -13,22 +13,32 @@ const categories = [
 
 const difficulties = ['BEGINNER', 'INTERMEDIATE', 'ADVANCED']
 
+const professionOptions = [
+  'Business Professionals', 'Healthcare Workers', 'Engineers/Tech', 
+  'Legal Professionals', 'Education/Academia', 'Sales/Marketing',
+  'Finance/Banking', 'General Professional', 'Customer Service'
+]
+
 export default function NewActivityPage() {
   const router = useRouter()
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [formData, setFormData] = useState({
     title: '',
     description: '',
-    category: 'GRAMMAR',
-    difficulty: 'BEGINNER',
-    minDuration: 10,
-    maxDuration: 30,
+    category: 'CONVERSATION',
+    subcategory: '',
+    difficulty: 'INTERMEDIATE',
+    minDuration: 15,
+    maxDuration: 25,
     typicalDuration: 20,
     objectives: [''],
     instructions: '',
     materials: '',
     tags: '',
-    profession: ''
+    profession: 'Business Professionals',
+    skillsFocus: '',
+    preparation: '',
+    variations: ''
   })
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -42,9 +52,10 @@ export default function NewActivityPage() {
         body: JSON.stringify({
           ...formData,
           objectives: formData.objectives.filter(obj => obj.trim()),
-          materials: formData.materials ? JSON.parse(formData.materials) : {},
+          materials: formData.materials ? { description: formData.materials } : {},
+          variations: formData.variations ? { description: formData.variations } : {},
           tags: formData.tags.split(',').map(tag => tag.trim()).filter(Boolean),
-          profession: formData.profession.split(',').map(prof => prof.trim()).filter(Boolean)
+          profession: [formData.profession]
         })
       })
 
@@ -110,20 +121,31 @@ export default function NewActivityPage() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium mb-2">Category</label>
+              <label className="block text-sm font-medium mb-2">Primary Category</label>
               <select
                 value={formData.category}
                 onChange={(e) => setFormData(prev => ({ ...prev, category: e.target.value }))}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
                 {categories.map(cat => (
-                  <option key={cat} value={cat}>{cat}</option>
+                  <option key={cat} value={cat}>{cat.replace('_', ' ')}</option>
                 ))}
               </select>
             </div>
 
             <div>
-              <label className="block text-sm font-medium mb-2">Difficulty</label>
+              <label className="block text-sm font-medium mb-2">Subcategory</label>
+              <input
+                type="text"
+                value={formData.subcategory}
+                onChange={(e) => setFormData(prev => ({ ...prev, subcategory: e.target.value }))}
+                placeholder="e.g., Presentation Skills, Email Writing"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium mb-2">Level</label>
               <select
                 value={formData.difficulty}
                 onChange={(e) => setFormData(prev => ({ ...prev, difficulty: e.target.value }))}
@@ -136,15 +158,55 @@ export default function NewActivityPage() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium mb-2">Typical Duration (minutes)</label>
-              <input
-                type="number"
-                required
-                min="1"
-                value={formData.typicalDuration}
-                onChange={(e) => setFormData(prev => ({ ...prev, typicalDuration: parseInt(e.target.value) }))}
+              <label className="block text-sm font-medium mb-2">Target Profession</label>
+              <select
+                value={formData.profession}
+                onChange={(e) => setFormData(prev => ({ ...prev, profession: e.target.value }))}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
+              >
+                {professionOptions.map(prof => (
+                  <option key={prof} value={prof}>{prof}</option>
+                ))}
+              </select>
+            </div>
+
+            <div className="grid grid-cols-3 gap-3">
+              <div>
+                <label className="block text-sm font-medium mb-2">Min Duration</label>
+                <input
+                  type="number"
+                  required
+                  min="5"
+                  step="5"
+                  value={formData.minDuration}
+                  onChange={(e) => setFormData(prev => ({ ...prev, minDuration: parseInt(e.target.value) }))}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-2">Typical</label>
+                <input
+                  type="number"
+                  required
+                  min="5"
+                  step="5"
+                  value={formData.typicalDuration}
+                  onChange={(e) => setFormData(prev => ({ ...prev, typicalDuration: parseInt(e.target.value) }))}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-2">Max Duration</label>
+                <input
+                  type="number"
+                  required
+                  min="5"
+                  step="5"
+                  value={formData.maxDuration}
+                  onChange={(e) => setFormData(prev => ({ ...prev, maxDuration: parseInt(e.target.value) }))}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
             </div>
           </div>
 
@@ -194,51 +256,73 @@ export default function NewActivityPage() {
         </div>
 
         <div className="bg-white rounded-lg border border-gray-200 p-6">
-          <h2 className="text-xl font-semibold mb-4">Instructions & Materials</h2>
+          <h2 className="text-xl font-semibold mb-4">Activity Details</h2>
           
           <div className="space-y-4">
             <div>
-              <label className="block text-sm font-medium mb-2">Instructions</label>
+              <label className="block text-sm font-medium mb-2">Step-by-Step Instructions</label>
               <textarea
                 required
                 rows={6}
                 value={formData.instructions}
                 onChange={(e) => setFormData(prev => ({ ...prev, instructions: e.target.value }))}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                placeholder="Detailed step-by-step instructions..."
+                placeholder="1. Warm-up: Ask students about...&#10;2. Present vocabulary/concept...&#10;3. Practice activity...&#10;4. Wrap-up discussion..."
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium mb-2">Materials (JSON format)</label>
+              <label className="block text-sm font-medium mb-2">Skills Focus</label>
+              <input
+                type="text"
+                value={formData.skillsFocus}
+                onChange={(e) => setFormData(prev => ({ ...prev, skillsFocus: e.target.value }))}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                placeholder="e.g., Negotiation vocabulary, Past tense, Presentation confidence"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium mb-2">Materials Needed</label>
               <textarea
-                rows={3}
+                rows={2}
                 value={formData.materials}
                 onChange={(e) => setFormData(prev => ({ ...prev, materials: e.target.value }))}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                placeholder='{"handouts": ["worksheet.pdf"], "technology": ["projector"], "props": []}'
+                placeholder="Handouts, whiteboard, role-play cards, timer..."
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium mb-2">Tags (comma-separated)</label>
+              <label className="block text-sm font-medium mb-2">Teacher Preparation</label>
+              <textarea
+                rows={3}
+                value={formData.preparation}
+                onChange={(e) => setFormData(prev => ({ ...prev, preparation: e.target.value }))}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                placeholder="Review key vocabulary, prepare examples, set up breakout rooms..."
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium mb-2">Activity Variations</label>
+              <textarea
+                rows={3}
+                value={formData.variations}
+                onChange={(e) => setFormData(prev => ({ ...prev, variations: e.target.value }))}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                placeholder="For larger groups: divide into teams...&#10;For advanced students: add complexity...&#10;Online adaptation: use breakout rooms..."
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium mb-2">Tags</label>
               <input
                 type="text"
                 value={formData.tags}
                 onChange={(e) => setFormData(prev => ({ ...prev, tags: e.target.value }))}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                placeholder="interactive, group-work, role-play"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium mb-2">Relevant Professions (comma-separated)</label>
-              <input
-                type="text"
-                value={formData.profession}
-                onChange={(e) => setFormData(prev => ({ ...prev, profession: e.target.value }))}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                placeholder="business, healthcare, technology"
+                placeholder="interactive, role-play, group-work, presentation"
               />
             </div>
           </div>
