@@ -3,6 +3,11 @@ import { prisma } from '@/lib/db'
 import { ActivityCategory, DifficultyLevel } from '@prisma/client'
 
 async function getActivities() {
+  // During build time, return empty array to avoid database connection issues
+  if (process.env.NODE_ENV === 'production' && !process.env.POSTGRES_PRISMA_URL) {
+    return []
+  }
+  
   try {
     const activities = await prisma.activity.findMany({
       where: { isArchived: false },
@@ -70,7 +75,7 @@ export default async function ActivitiesPage() {
           {activities.map((activity) => (
             <div key={activity.id} className="bg-white border border-gray-200 rounded-lg p-6 hover:shadow-lg transition-shadow">
               <div className="flex justify-between items-start mb-4">
-                <h3 className="text-lg font-semibold text-gray-900 line-clamp-2">
+                <h3 className="text-lg font-semibold text-gray-900">
                   {activity.title}
                 </h3>
                 <span className={`px-2 py-1 text-xs rounded-full font-medium ${difficultyColors[activity.difficulty]}`}>
@@ -78,7 +83,7 @@ export default async function ActivitiesPage() {
                 </span>
               </div>
               
-              <p className="text-gray-600 text-sm mb-4 line-clamp-3">
+              <p className="text-gray-600 text-sm mb-4">
                 {activity.description}
               </p>
 
