@@ -81,6 +81,16 @@ resource "vercel_project" "curriculum_designer" {
       target = ["production", "preview", "development"]
       key    = "ENVIRONMENT"
       value  = var.environment
+    },
+    {
+      target = ["production", "preview", "development"]
+      key    = "POSTGRES_PRISMA_URL"
+      value  = "postgres://neondb_owner:npg_xkNPpSct3r8f@ep-misty-mud-ado3w21p-pooler.c-2.us-east-1.aws.neon.tech/neondb?connect_timeout=15&sslmode=require"
+    },
+    {
+      target = ["production", "preview", "development"]
+      key    = "POSTGRES_URL_NON_POOLING"
+      value  = "postgres://neondb_owner:npg_xkNPpSct3r8f@ep-misty-mud-ado3w21p.c-2.us-east-1.aws.neon.tech/neondb?sslmode=require"
     }
   ]
 }
