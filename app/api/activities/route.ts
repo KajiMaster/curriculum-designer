@@ -32,7 +32,7 @@ export async function POST(request: Request) {
   } catch (error) {
     console.error('Error creating activity:', error)
     return NextResponse.json(
-      { error: 'Failed to create activity', details: error.message },
+      { error: 'Failed to create activity', details: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 }
     )
   }
