@@ -35,13 +35,21 @@ export default function Home() {
 
         <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
           <h2 className="text-2xl font-semibold text-blue-800 mb-4">
-            🚀 Ready for Development
+            🚀 Start Building Your Curriculum
           </h2>
           <p className="text-blue-700 mb-6">
-            The foundation is working! We can now build the MCMS features step by step.
+            Your Modular Curriculum Management System is ready! Begin by creating activities for your lessons.
           </p>
-          <div className="text-blue-600 font-medium">
-            Next: Activity Library → Lesson Builder → AI Integration
+          <div className="flex gap-4">
+            <a 
+              href="/activities"
+              className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium transition-colors"
+            >
+              Activity Library →
+            </a>
+            <div className="text-blue-600 font-medium flex items-center">
+              Activity Library → Lesson Builder → AI Integration
+            </div>
           </div>
         </div>
       </div>
