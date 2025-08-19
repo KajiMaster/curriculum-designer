@@ -1,0 +1,300 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("POSTGRES_PRISMA_URL")
+}
+
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  name          String?
+  password      String
+  role          UserRole  @default(TEACHER)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  
+  students      Student[]
+  activities    Activity[]
+  lessons       Lesson[]
+}
+
+model Student {
+  id                String            @id @default(cuid())
+  email             String            @unique
+  name              String
+  profession        String
+  proficiencyLevel  ProficiencyLevel  @default(BEGINNER)
+  learningStyle     String[]
+  interests         String[]
+  goals             String[]
+  timezone          String?
+  preferredSchedule Json?
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+  
+  teacherId         String
+  teacher           User              @relation(fields: [teacherId], references: [id])
+  
+  assessments       Assessment[]
+  lessons           Lesson[]
+  progress          Progress[]
+  notes             StudentNote[]
+}
+
+model Assessment {
+  id            String    @id @default(cuid())
+  studentId     String
+  student       Student   @relation(fields: [studentId], references: [id])
+  
+  type          AssessmentType
+  results       Json
+  proficiencyScore Float
+  strengths     String[]
+  weaknesses    String[]
+  recommendations Json
+  
+  createdAt     DateTime  @default(now())
+}
+
+model Activity {
+  id            String    @id @default(cuid())
+  title         String
+  description   String
+  category      ActivityCategory
+  subcategory   String?
+  
+  minDuration   Int       // in minutes
+  maxDuration   Int
+  typicalDuration Int
+  
+  difficulty    DifficultyLevel
+  objectives    String[]
+  materials     Json      // structured data for materials needed
+  instructions  String    @db.Text
+  variations    Json      // AI-generated variations
+  
+  tags          String[]
+  profession    String[]  // relevant professions
+  
+  createdById   String
+  createdBy     User      @relation(fields: [createdById], references: [id])
+  
+  isPublic      Boolean   @default(false)
+  isArchived    Boolean   @default(false)
+  
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  
+  lessonActivities LessonActivity[]
+  metrics       ActivityMetric[]
+}
+
+model TransitionActivity {
+  id            String    @id @default(cuid())
+  title         String
+  type          TransitionType
+  duration      Int       // in minutes
+  instructions  String
+  materials     Json?
+  
+  createdAt     DateTime  @default(now())
+  
+  lessonTransitions LessonTransition[]
+}
+
+model Lesson {
+  id            String    @id @default(cuid())
+  studentId     String
+  student       Student   @relation(fields: [studentId], references: [id])
+  
+  teacherId     String
+  teacher       User      @relation(fields: [teacherId], references: [id])
+  
+  scheduledDate DateTime
+  duration      Int       // total duration in minutes
+  status        LessonStatus @default(PLANNED)
+  
+  objectives    String[]
+  homework      Json?
+  notes         String?   @db.Text
+  
+  aiSuggestions Json?     // AI recommendations stored
+  
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  
+  activities    LessonActivity[]
+  transitions   LessonTransition[]
+  feedback      LessonFeedback?
+}
+
+model LessonActivity {
+  id            String    @id @default(cuid())
+  lessonId      String
+  lesson        Lesson    @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  
+  activityId    String
+  activity      Activity  @relation(fields: [activityId], references: [id])
+  
+  order         Int
+  plannedDuration Int
+  actualDuration Int?
+  
+  customization Json?     // any lesson-specific modifications
+  completed     Boolean   @default(false)
+  
+  createdAt     DateTime  @default(now())
+}
+
+model LessonTransition {
+  id            String    @id @default(cuid())
+  lessonId      String
+  lesson        Lesson    @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  
+  transitionId  String
+  transition    TransitionActivity @relation(fields: [transitionId], references: [id])
+  
+  order         Int
+  completed     Boolean   @default(false)
+}
+
+model LessonFeedback {
+  id            String    @id @default(cuid())
+  lessonId      String    @unique
+  lesson        Lesson    @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  
+  overallRating Int       // 1-5
+  paceRating    Int       // 1-5
+  engagementRating Int    // 1-5
+  
+  activityFeedback Json   // detailed feedback per activity
+  studentMood   String?
+  teacherNotes  String?   @db.Text
+  
+  createdAt     DateTime  @default(now())
+}
+
+model Progress {
+  id            String    @id @default(cuid())
+  studentId     String
+  student       Student   @relation(fields: [studentId], references: [id])
+  
+  date          DateTime
+  category      ActivityCategory
+  skill         String
+  score         Float
+  notes         String?
+  
+  createdAt     DateTime  @default(now())
+}
+
+model ActivityMetric {
+  id            String    @id @default(cuid())
+  activityId    String
+  activity      Activity  @relation(fields: [activityId], references: [id])
+  
+  timesUsed     Int       @default(0)
+  avgRating     Float?
+  avgCompletion Float?    // percentage of activity typically completed
+  successRate   Float?    // based on objectives met
+  
+  updatedAt     DateTime  @updatedAt
+}
+
+model StudentNote {
+  id            String    @id @default(cuid())
+  studentId     String
+  student       Student   @relation(fields: [studentId], references: [id])
+  
+  content       String    @db.Text
+  category      NoteCategory
+  isImportant   Boolean   @default(false)
+  
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+}
+
+model AIPromptTemplate {
+  id            String    @id @default(cuid())
+  name          String    @unique
+  description   String
+  prompt        String    @db.Text
+  variables     String[]  // placeholders in the prompt
+  category      String
+  
+  isActive      Boolean   @default(true)
+  
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+}
+
+enum UserRole {
+  ADMIN
+  TEACHER
+  ASSISTANT
+}
+
+enum ProficiencyLevel {
+  BEGINNER
+  ELEMENTARY
+  PRE_INTERMEDIATE
+  INTERMEDIATE
+  UPPER_INTERMEDIATE
+  ADVANCED
+  PROFICIENT
+}
+
+enum AssessmentType {
+  INITIAL
+  PROGRESS
+  FINAL
+}
+
+enum ActivityCategory {
+  GRAMMAR
+  VOCABULARY
+  SPEAKING
+  LISTENING
+  READING
+  WRITING
+  PRONUNCIATION
+  BUSINESS
+  CONVERSATION
+  CULTURE
+}
+
+enum DifficultyLevel {
+  BEGINNER
+  INTERMEDIATE
+  ADVANCED
+}
+
+enum TransitionType {
+  GAME
+  QUIZ
+  DISCUSSION
+  BREAK
+  WARM_UP
+  COOL_DOWN
+}
+
+enum LessonStatus {
+  PLANNED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+  RESCHEDULED
+}
+
+enum NoteCategory {
+  LEARNING_STYLE
+  PREFERENCE
+  CHALLENGE
+  SUCCESS
+  GOAL
+  PERSONAL
+  SCHEDULE
+}

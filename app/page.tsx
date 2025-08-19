@@ -1,5 +1,3 @@
-import Link from 'next/link'
-
 export default function Home() {
   return (
     <main className="flex min-h-screen flex-col items-center justify-center p-24">
@@ -13,7 +11,7 @@ export default function Home() {
         
         <div className="bg-green-50 border border-green-200 rounded-lg p-6 mb-8">
           <h2 className="text-2xl font-semibold text-green-800 mb-4">
-            🎉 Infrastructure Setup Complete!
+            🎉 Deployment Successful!
           </h2>
           <div className="text-left space-y-2">
             <div className="flex items-center">
@@ -32,26 +30,19 @@ export default function Home() {
               <span className="text-green-600 mr-2">✅</span>
               <span>Terraform infrastructure (AWS + Vercel)</span>
             </div>
-            <div className="flex items-center">
-              <span className="text-green-600 mr-2">✅</span>
-              <span>AI integration layer (OpenAI)</span>
-            </div>
           </div>
         </div>
 
         <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
           <h2 className="text-2xl font-semibold text-blue-800 mb-4">
-            🚀 Start Building Your Curriculum
+            🚀 Ready for Development
           </h2>
           <p className="text-blue-700 mb-6">
-            The Modular Curriculum Management System (MCMS) is ready to use!
+            The foundation is working! We can now build the MCMS features step by step.
           </p>
-          <Link
-            href="/activities"
-            className="inline-block bg-blue-600 hover:bg-blue-700 text-white px-8 py-4 rounded-lg font-medium text-lg transition-colors"
-          >
-            Open Activity Library →
-          </Link>
+          <div className="text-blue-600 font-medium">
+            Next: Activity Library → Lesson Builder → AI Integration
+          </div>
         </div>
       </div>
     </main>
