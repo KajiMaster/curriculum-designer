@@ -46,26 +46,34 @@ export default function NewActivityPage() {
     setIsSubmitting(true)
 
     try {
+      const submitData = {
+        ...formData,
+        objectives: formData.objectives.filter(obj => obj.trim()),
+        tags: formData.tags.split(',').map(tag => tag.trim()).filter(Boolean),
+        profession: [formData.profession]
+      }
+      
+      console.log('Submitting activity data:', submitData)
+      
       const response = await fetch('/api/activities', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          ...formData,
-          objectives: formData.objectives.filter(obj => obj.trim()),
-          materials: formData.materials ? { description: formData.materials } : {},
-          variations: formData.variations ? { description: formData.variations } : {},
-          tags: formData.tags.split(',').map(tag => tag.trim()).filter(Boolean),
-          profession: [formData.profession]
-        })
+        body: JSON.stringify(submitData)
       })
 
+      const result = await response.json()
+      console.log('API Response:', result)
+
       if (response.ok) {
+        console.log('Activity created successfully')
         router.push('/activities')
       } else {
-        console.error('Failed to create activity')
+        console.error('Failed to create activity:', result)
+        alert(`Failed to create activity: ${result.error || 'Unknown error'}`)
       }
     } catch (error) {
       console.error('Error creating activity:', error)
+      alert('Error creating activity. Please try again.')
     } finally {
       setIsSubmitting(false)
     }

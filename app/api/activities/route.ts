@@ -4,20 +4,22 @@ import { db } from '@/lib/db'
 export async function POST(request: Request) {
   try {
     const body = await request.json()
+    console.log('Received activity data:', body)
     
     const activity = await db.activity.create({
       data: {
         title: body.title,
         description: body.description,
         category: body.category,
+        subcategory: body.subcategory || null,
         difficulty: body.difficulty,
         minDuration: body.minDuration || body.typicalDuration - 5,
         maxDuration: body.maxDuration || body.typicalDuration + 10,
         typicalDuration: body.typicalDuration,
-        objectives: body.objectives,
+        objectives: body.objectives || [],
         instructions: body.instructions,
-        materials: body.materials || {},
-        variations: {},
+        materials: body.materials ? { description: body.materials } : {},
+        variations: body.variations ? { description: body.variations } : {},
         tags: body.tags || [],
         profession: body.profession || [],
         createdById: 'temp-user-id', // TODO: Replace with actual user ID from auth
@@ -25,11 +27,12 @@ export async function POST(request: Request) {
       }
     })
 
+    console.log('Created activity:', activity)
     return NextResponse.json(activity)
   } catch (error) {
     console.error('Error creating activity:', error)
     return NextResponse.json(
-      { error: 'Failed to create activity' },
+      { error: 'Failed to create activity', details: error.message },
       { status: 500 }
     )
   }
