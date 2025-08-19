@@ -51,27 +51,16 @@ resource "vercel_project" "curriculum_designer" {
   name      = "${var.project_name}-${var.environment}"
   framework = "nextjs"
   
-  # Git repository will be connected manually after GitHub integration is set up
-  # git_repository = {
-  #   type = "github"
-  #   repo = "${data.aws_ssm_parameter.github_org.value}/${data.aws_ssm_parameter.github_repo.value}"
-  # }
+  git_repository = {
+    type = "github"
+    repo = "${data.aws_ssm_parameter.github_org.value}/${data.aws_ssm_parameter.github_repo.value}"
+  }
   
   build_command    = "npx prisma generate && npm run build"
   output_directory = ".next"
   install_command  = "npm install"
   
   environment = [
-    {
-      target = ["production", "preview", "development"]
-      key    = "POSTGRES_PRISMA_URL"
-      value  = var.postgres_prisma_url  # Will be set after Vercel Postgres is created
-    },
-    {
-      target = ["production", "preview", "development"]
-      key    = "POSTGRES_URL_NON_POOLING"
-      value  = var.postgres_url_non_pooling  # For migrations
-    },
     {
       target = ["production", "preview", "development"]
       key    = "OPENAI_API_KEY"

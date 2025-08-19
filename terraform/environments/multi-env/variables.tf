@@ -22,14 +22,4 @@ variable "base_domain" {
   type        = string
 }
 
-variable "postgres_prisma_url" {
-  description = "Vercel Postgres connection string (pooled)"
-  type        = string
-  default     = ""
-}
-
-variable "postgres_url_non_pooling" {
-  description = "Vercel Postgres connection string (non-pooled for migrations)"
-  type        = string
-  default     = ""
-}
+# Database URLs will be managed by Vercel automatically
