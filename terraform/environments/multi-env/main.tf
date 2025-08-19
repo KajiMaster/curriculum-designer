@@ -56,9 +56,10 @@ resource "vercel_project" "curriculum_designer" {
     repo = "${data.aws_ssm_parameter.github_org.value}/${data.aws_ssm_parameter.github_repo.value}"
   }
   
-  build_command    = "npx prisma generate && npm run build"
-  output_directory = ".next"
-  install_command  = "npm install"
+  # Use Vercel's default Next.js build process
+  # build_command is automatically detected for Next.js
+  # output_directory is automatically detected 
+  # install_command is automatically detected
   
   environment = [
     {
