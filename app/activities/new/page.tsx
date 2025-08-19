@@ -3,7 +3,10 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { ActivityCategory, DifficultyLevel } from '@prisma/client'
+
+// Temporary types while we debug deployment
+type ActivityCategory = 'GRAMMAR' | 'VOCABULARY' | 'SPEAKING' | 'LISTENING' | 'READING' | 'WRITING' | 'PRONUNCIATION' | 'BUSINESS' | 'CONVERSATION' | 'CULTURE'
+type DifficultyLevel = 'BEGINNER' | 'INTERMEDIATE' | 'ADVANCED'
 
 const categories = [
   { value: 'GRAMMAR', label: 'Grammar' },
@@ -44,39 +47,8 @@ export default function NewActivityPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    setIsSubmitting(true)
-
-    try {
-      const objectives = formData.objectives.filter(obj => obj.trim() !== '')
-      const tags = formData.tags.split(',').map(tag => tag.trim()).filter(tag => tag !== '')
-      const professions = formData.profession.split(',').map(prof => prof.trim()).filter(prof => prof !== '')
-
-      const response = await fetch('/api/activities', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          ...formData,
-          objectives,
-          tags,
-          profession: professions,
-          materials: formData.materials ? JSON.parse(formData.materials) : {}
-        }),
-      })
-
-      if (response.ok) {
-        const activity = await response.json()
-        router.push(`/activities/${activity.id}`)
-      } else {
-        throw new Error('Failed to create activity')
-      }
-    } catch (error) {
-      console.error('Error creating activity:', error)
-      alert('Failed to create activity. Please try again.')
-    } finally {
-      setIsSubmitting(false)
-    }
+    alert('Activity creation will be available once deployment is complete!')
+    return
   }
 
   const addObjective = () => {
@@ -107,7 +79,19 @@ export default function NewActivityPage() {
           ← Back to Activities
         </Link>
         <h1 className="text-3xl font-bold text-gray-900 mt-2">Create New Activity</h1>
-        <p className="text-gray-600 mt-2">Build a modular curriculum activity</p>
+        <p className="text-gray-600 mt-2">Build a modular curriculum activity (Demo Mode)</p>
+      </div>
+
+      <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-8">
+        <div className="flex">
+          <div className="text-yellow-400 mr-3">⚠️</div>
+          <div>
+            <h3 className="text-yellow-800 font-medium">Demo Mode</h3>
+            <p className="text-yellow-700 text-sm mt-1">
+              This form is in demo mode while we set up the database integration. You can explore the interface but submissions aren't saved yet.
+            </p>
+          </div>
+        </div>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-8">
@@ -285,7 +269,7 @@ export default function NewActivityPage() {
             disabled={isSubmitting}
             className="px-6 py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 disabled:opacity-50"
           >
-            {isSubmitting ? 'Creating...' : 'Create Activity'}
+            Preview Form (Demo)
           </button>
         </div>
       </form>
