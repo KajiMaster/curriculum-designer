@@ -184,6 +184,8 @@ async def handle_comment(action):
                 ack_comment = f"✅ **Feedback Received**\n\nThanks for the feedback! I've recorded your {feedback_result.get('feedback_type', 'comment')} and will use it to improve future lesson plans."
                 await trello.add_comment(card_id, ack_comment)
                 return  # Don't process as general AI request if it's feedback
+            else:
+                print("No feedback detected, will process as general AI request")
 
         # Extract AI request for general assistance
         ai_request = comment_text.lower().replace("@ai", "").strip()
