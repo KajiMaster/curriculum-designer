@@ -90,6 +90,11 @@ jobs:
           aws lambda update-function-code \
             --function-name ${{ env.LAMBDA_FUNCTION_NAME_DEV }} \
             --zip-file fileb://lambda_deployment.zip
+            
+      - name: Wait for function update to complete
+        run: |
+          aws lambda wait function-updated \
+            --function-name ${{ env.LAMBDA_FUNCTION_NAME_DEV }}
 
       - name: Update Lambda configuration (Development)
         run: |
