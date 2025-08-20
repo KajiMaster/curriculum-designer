@@ -10,23 +10,59 @@ import asyncio
 import boto3
 
 
-def get_secret(param_name: str) -> str:
-    """Get secret from Parameter Store"""
-    ssm = boto3.client('ssm')
-    try:
-        response = ssm.get_parameter(Name=param_name, WithDecryption=True)
-        return response['Parameter']['Value']
-    except Exception as e:
-        print(f"Error getting parameter {param_name}: {e}")
+class SecretsManager:
+    """Lazy-load secrets from Parameter Store or environment variables"""
+    _instance = None
+    _secrets = {}
+    
+    def __new__(cls):
+        if cls._instance is None:
+            cls._instance = super().__new__(cls)
+        return cls._instance
+    
+    def get_secret(self, param_env: str, fallback_env: str = None) -> str:
+        """Get secret from Parameter Store or environment variable"""
+        # Check cache first
+        if param_env in self._secrets:
+            return self._secrets[param_env]
+        
+        # Try to get from Parameter Store if in Lambda
+        if os.getenv("AWS_LAMBDA_FUNCTION_NAME"):
+            param_name = os.getenv(param_env, "")
+            if param_name:
+                try:
+                    ssm = boto3.client('ssm', region_name=os.getenv('AWS_REGION', 'us-east-1'))
+                    response = ssm.get_parameter(Name=param_name, WithDecryption=True)
+                    value = response['Parameter']['Value']
+                    self._secrets[param_env] = value
+                    return value
+                except Exception as e:
+                    print(f"Error getting parameter {param_name}: {e}")
+        
+        # Fall back to environment variable
+        if fallback_env:
+            value = os.getenv(fallback_env, "")
+            self._secrets[param_env] = value
+            return value
+        
         return ""
 
 
-TRELLO_API_KEY = get_secret(os.getenv("TRELLO_API_KEY_PARAM", ""))
-TRELLO_TOKEN = get_secret(os.getenv("TRELLO_TOKEN_PARAM", ""))
-OPENAI_API_KEY = get_secret(os.getenv("OPENAI_API_KEY_PARAM", ""))
-TRELLO_WEBHOOK_SECRET = get_secret(os.getenv("TRELLO_WEBHOOK_SECRET_PARAM", ""))
+# Create singleton instance
+secrets = SecretsManager()
 
-print(f"Loaded credentials - Trello Key: {bool(TRELLO_API_KEY)}, Trello Token: {bool(TRELLO_TOKEN)}, OpenAI: {bool(OPENAI_API_KEY)}")
+# Lazy-load credentials when needed
+def get_trello_api_key():
+    return secrets.get_secret("TRELLO_API_KEY_PARAM", "TRELLO_API_KEY")
+
+def get_trello_token():
+    return secrets.get_secret("TRELLO_TOKEN_PARAM", "TRELLO_TOKEN")
+
+def get_openai_api_key():
+    return secrets.get_secret("OPENAI_API_KEY_PARAM", "OPENAI_API_KEY")
+
+def get_webhook_secret():
+    return secrets.get_secret("TRELLO_WEBHOOK_SECRET_PARAM", "TRELLO_WEBHOOK_SECRET")
 
 # Trello API base URL
 TRELLO_BASE = "https://api.trello.com/1"
@@ -37,8 +73,8 @@ class TrelloClient:
 
     def __init__(self):
         self.auth_params = {
-            "key": TRELLO_API_KEY,
-            "token": TRELLO_TOKEN
+            "key": get_trello_api_key(),
+            "token": get_trello_token()
         }
 
     async def add_comment(self, card_id: str, text: str):
@@ -65,12 +101,13 @@ class AIAssistant:
 
     async def get_openai_response(self, prompt: str, max_tokens: int = 500):
         """Get response from OpenAI"""
-        print(f"OpenAI API Key available: {bool(OPENAI_API_KEY)}")
-        print(f"OpenAI API Key length: {len(OPENAI_API_KEY) if OPENAI_API_KEY else 0}")
+        openai_key = get_openai_api_key()
+        print(f"OpenAI API Key available: {bool(openai_key)}")
+        print(f"OpenAI API Key length: {len(openai_key) if openai_key else 0}")
 
         url = "https://api.openai.com/v1/chat/completions"
         headers = {
-            "Authorization": f"Bearer {OPENAI_API_KEY}",
+            "Authorization": f"Bearer {openai_key}",
             "Content-Type": "application/json"
         }
         data = {
@@ -204,8 +241,8 @@ def lambda_handler(event, context):
                     "body": json.dumps({
                         "status": "healthy",
                         "services": {
-                            "trello": bool(TRELLO_API_KEY and TRELLO_TOKEN),
-                            "openai": bool(OPENAI_API_KEY)
+                            "trello": bool(get_trello_api_key() and get_trello_token()),
+                            "openai": bool(get_openai_api_key())
                         }
                     })
                 }
