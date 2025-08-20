@@ -1,0 +1,112 @@
+name: Deploy Lambda Function
+
+on:
+  push:
+    branches: [develop]
+    paths:
+      - 'webhook-handler/**'
+  pull_request:
+    branches: [develop]
+    paths:
+      - 'webhook-handler/**'
+
+env:
+  AWS_REGION: us-east-1
+  LAMBDA_FUNCTION_NAME_DEV: curriculum-designer-webhook-dev
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          cd webhook-handler
+          pip install -r requirements.txt
+          pip install -r requirements-dev.txt
+
+      - name: Lint code
+        run: |
+          cd webhook-handler
+          flake8 lambda_main.py --max-line-length=120 --ignore=E501,W503
+
+      - name: Run tests
+        run: |
+          cd webhook-handler
+          python -m pytest test_lambda.py -v
+
+  deploy-dev:
+    needs: test
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/develop'
+    environment: development
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Install dependencies and create deployment package
+        run: |
+          cd webhook-handler
+          
+          # Create clean deployment directory
+          rm -rf lambda_deployment
+          mkdir lambda_deployment
+          
+          # Install dependencies
+          pip install -r requirements.txt -t lambda_deployment/
+          
+          # Copy application code
+          cp lambda_main.py lambda_deployment/
+          
+          # Create deployment zip
+          cd lambda_deployment
+          zip -r ../lambda_deployment.zip .
+          cd ..
+
+      - name: Deploy to Lambda (Development)
+        run: |
+          cd webhook-handler
+          aws lambda update-function-code \
+            --function-name ${{ env.LAMBDA_FUNCTION_NAME_DEV }} \
+            --zip-file fileb://lambda_deployment.zip
+
+      - name: Update Lambda configuration (Development)
+        run: |
+          aws lambda update-function-configuration \
+            --function-name ${{ env.LAMBDA_FUNCTION_NAME_DEV }} \
+            --runtime python3.11 \
+            --handler lambda_main.handler \
+            --timeout 30
+
+      - name: Test deployment
+        run: |
+          # Wait for deployment to complete
+          sleep 10
+          
+          # Test function
+          aws lambda invoke \
+            --function-name ${{ env.LAMBDA_FUNCTION_NAME_DEV }} \
+            --payload '{"httpMethod":"GET","path":"/health","body":""}' \
+            response.json
+          
+          cat response.json
