@@ -149,6 +149,7 @@ resource "aws_iam_role_policy" "github_actions_lambda_deploy" {
           "lambda:UpdateFunctionCode",
           "lambda:UpdateFunctionConfiguration",
           "lambda:GetFunction",
+          "lambda:GetFunctionConfiguration",
           "lambda:InvokeFunction"
         ]
         Resource = [
