@@ -43,6 +43,16 @@ data "aws_lambda_layer_version" "webhook_dependencies" {
   layer_name = "curriculum-designer-webhook-dependencies"
 }
 
+# Reference GitHub Actions role from global state
+data "terraform_remote_state" "global" {
+  backend = "s3"
+  config = {
+    bucket = "terraform-state-curriculum-designer"
+    key    = "global/terraform.tfstate"
+    region = "us-east-1"
+  }
+}
+
 # ============================================
 # LAMBDA WEBHOOK HANDLER
 # ============================================
@@ -270,4 +280,9 @@ output "webhook_endpoint" {
 output "lambda_function_name" {
   value = aws_lambda_function.webhook_handler.function_name
   description = "Lambda function name for monitoring"
+}
+
+output "github_actions_role_arn" {
+  value = data.terraform_remote_state.global.outputs.github_actions_role_arn
+  description = "ARN of the GitHub Actions role for CI/CD"
 }
