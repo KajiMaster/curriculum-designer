@@ -17,6 +17,7 @@ Lambda function for processing Trello webhook events with AI assistance.
 - **AI Provider**: OpenAI GPT-3.5-turbo
 - **Deployment**: AWS Lambda + API Gateway
 - **Configuration**: AWS Parameter Store for secrets
+- **Authentication**: GitHub OIDC for secure CI/CD
 
 ## Local Development
 
