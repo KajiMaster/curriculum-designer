@@ -110,10 +110,14 @@ jobs:
           # Wait for deployment to complete
           sleep 10
           
-          # Test function
+          # Create test payload
+          echo '{"httpMethod":"GET","path":"/health","body":""}' > test_payload.json
+          
+          # Test function with health check
           aws lambda invoke \
             --function-name ${{ env.LAMBDA_FUNCTION_NAME_DEV }} \
-            --payload '{"httpMethod":"GET","path":"/health","body":""}' \
+            --payload file://test_payload.json \
             response.json
           
+          echo "Lambda response:"
           cat response.json
