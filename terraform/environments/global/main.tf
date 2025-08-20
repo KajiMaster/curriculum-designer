@@ -77,5 +77,93 @@ resource "aws_dynamodb_table" "terraform_locks" {
   }
 }
 
-# Parameter Store values are managed manually via AWS CLI
+# ============================================
+# GITHUB OIDC PROVIDER
+# ============================================
+
+# GitHub OIDC Identity Provider
+resource "aws_iam_openid_connect_provider" "github" {
+  url = "https://token.actions.githubusercontent.com"
+
+  client_id_list = [
+    "sts.amazonaws.com",
+  ]
+
+  thumbprint_list = [
+    "6938fd4d98bab03faadb97b34396831e3780aea1",
+    "1c58a3a8518e8759bf075b76b750d4f2df264fcd"
+  ]
+
+  tags = {
+    Name        = "GitHub OIDC Provider"
+    Project     = "curriculum-designer"
+    Environment = "global"
+    ManagedBy   = "terraform"
+  }
+}
+
+# GitHub Actions Role for CI/CD
+resource "aws_iam_role" "github_actions" {
+  name = "curriculum-designer-github-actions"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Principal = {
+          Federated = aws_iam_openid_connect_provider.github.arn
+        }
+        Action = "sts:AssumeRoleWithWebIdentity"
+        Condition = {
+          StringEquals = {
+            "token.actions.githubusercontent.com:aud" = "sts.amazonaws.com"
+          }
+          StringLike = {
+            "token.actions.githubusercontent.com:sub" = "repo:KajiMaster/curriculum-designer:*"
+          }
+        }
+      }
+    ]
+  })
+
+  tags = {
+    Name        = "GitHub Actions Role"
+    Project     = "curriculum-designer" 
+    Environment = "global"
+    ManagedBy   = "terraform"
+  }
+}
+
+# Policy for GitHub Actions to deploy Lambda functions
+resource "aws_iam_role_policy" "github_actions_lambda_deploy" {
+  name = "curriculum-designer-github-actions-lambda-deploy"
+  role = aws_iam_role.github_actions.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "lambda:UpdateFunctionCode",
+          "lambda:UpdateFunctionConfiguration",
+          "lambda:GetFunction",
+          "lambda:InvokeFunction"
+        ]
+        Resource = [
+          "arn:aws:lambda:us-east-1:*:function:curriculum-designer-webhook-*"
+        ]
+      }
+    ]
+  })
+}
+
+# Output the role ARN for GitHub Actions
+output "github_actions_role_arn" {
+  value = aws_iam_role.github_actions.arn
+  description = "ARN of the IAM role for GitHub Actions"
+}
+
+# Parameter Store values are managed manually via AWS CLI  
 # They already exist and don't need to be created by Terraform
