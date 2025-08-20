@@ -14,18 +14,18 @@ class SecretsManager:
     """Lazy-load secrets from Parameter Store or environment variables"""
     _instance = None
     _secrets = {}
-    
+
     def __new__(cls):
         if cls._instance is None:
             cls._instance = super().__new__(cls)
         return cls._instance
-    
+
     def get_secret(self, param_env: str, fallback_env: str = None) -> str:
         """Get secret from Parameter Store or environment variable"""
         # Check cache first
         if param_env in self._secrets:
             return self._secrets[param_env]
-        
+
         # Try to get from Parameter Store if in Lambda
         if os.getenv("AWS_LAMBDA_FUNCTION_NAME"):
             param_name = os.getenv(param_env, "")
@@ -38,31 +38,35 @@ class SecretsManager:
                     return value
                 except Exception as e:
                     print(f"Error getting parameter {param_name}: {e}")
-        
+
         # Fall back to environment variable
         if fallback_env:
             value = os.getenv(fallback_env, "")
             self._secrets[param_env] = value
             return value
-        
+
         return ""
 
 
 # Create singleton instance
 secrets = SecretsManager()
 
-# Lazy-load credentials when needed
+
 def get_trello_api_key():
     return secrets.get_secret("TRELLO_API_KEY_PARAM", "TRELLO_API_KEY")
+
 
 def get_trello_token():
     return secrets.get_secret("TRELLO_TOKEN_PARAM", "TRELLO_TOKEN")
 
+
 def get_openai_api_key():
     return secrets.get_secret("OPENAI_API_KEY_PARAM", "OPENAI_API_KEY")
 
+
 def get_webhook_secret():
     return secrets.get_secret("TRELLO_WEBHOOK_SECRET_PARAM", "TRELLO_WEBHOOK_SECRET")
+
 
 # Trello API base URL
 TRELLO_BASE = "https://api.trello.com/1"
