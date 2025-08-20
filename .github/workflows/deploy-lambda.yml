@@ -68,7 +68,7 @@ jobs:
           role-session-name: GitHubActions-${{ github.run_id }}
           aws-region: ${{ env.AWS_REGION }}
 
-      - name: Install dependencies and create deployment package
+      - name: Create deployment package (code only - dependencies in layer)
         run: |
           cd webhook-handler
           
@@ -76,10 +76,7 @@ jobs:
           rm -rf lambda_deployment
           mkdir lambda_deployment
           
-          # Install dependencies
-          pip install -r requirements.txt -t lambda_deployment/
-          
-          # Copy application code
+          # Copy only application code (dependencies are in Lambda layer)
           cp lambda_main.py lambda_deployment/
           
           # Create deployment zip

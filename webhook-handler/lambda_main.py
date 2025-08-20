@@ -192,7 +192,7 @@ async def handle_comment(action):
 
 
 def lambda_handler(event, context):
-    """AWS Lambda handler"""
+    """AWS Lambda handler - optimized with Lambda layer for dependencies"""
 
     try:
         print(f"Full event: {json.dumps(event)}")

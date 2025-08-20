@@ -38,6 +38,11 @@ data "aws_ssm_parameter" "trello_webhook_secret" {
   name = "/global/curriculum-designer/trello-webhook-secret"
 }
 
+# Reference Lambda layer from global infrastructure
+data "aws_lambda_layer_version" "webhook_dependencies" {
+  layer_name = "curriculum-designer-webhook-dependencies"
+}
+
 # ============================================
 # LAMBDA WEBHOOK HANDLER
 # ============================================
@@ -116,6 +121,9 @@ resource "aws_lambda_function" "webhook_handler" {
   handler      = "lambda_main.handler"
   runtime      = "python3.11"
   timeout      = 30
+
+  # Use Lambda layer for dependencies
+  layers = [data.aws_lambda_layer_version.webhook_dependencies.arn]
 
   # Initial deployment with current working code (CI/CD will update)
   filename         = "${path.module}/../../../webhook-handler/lambda_package/placeholder.zip"
