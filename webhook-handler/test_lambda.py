@@ -4,17 +4,16 @@ Basic tests for Lambda function
 import json
 import pytest
 from unittest.mock import patch, AsyncMock, MagicMock
+import lambda_main
 
 
 def test_lambda_handler_import():
     """Test that lambda_main module can be imported"""
-    import lambda_main
     assert lambda_main.lambda_handler is not None
 
 
 def test_lambda_handler_with_head_request():
     """Test that HEAD requests are handled properly"""
-    import lambda_main
     
     # Mock event for HEAD request
     event = {
@@ -36,7 +35,6 @@ def test_lambda_handler_with_head_request():
 
 def test_lambda_handler_with_get_health():
     """Test that GET /health requests work"""
-    import lambda_main
     
     # Mock event for GET /health
     event = {
@@ -59,7 +57,6 @@ def test_lambda_handler_with_get_health():
 @patch.object(lambda_main.secrets, 'get_secret')
 def test_lambda_handler_environment_setup(mock_get_secret):
     """Test that environment variables are properly configured"""
-    import lambda_main
     
     # Mock secrets
     mock_get_secret.return_value = "test_value"
@@ -83,7 +80,6 @@ def test_lambda_handler_environment_setup(mock_get_secret):
 
 def test_webhook_payload_parsing():
     """Test webhook payload parsing"""
-    import lambda_main
     
     # Mock Trello webhook payload
     webhook_payload = {
