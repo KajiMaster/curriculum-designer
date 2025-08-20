@@ -171,13 +171,13 @@ async def handle_comment(action):
         # Check if this is a lesson plan card (from lesson plans board)
         lesson_plans_board_id = "68a646dba9f202dbd275b7e8"
         card_board_id = card_details.get("idBoard")
-        
+
         if card_board_id == lesson_plans_board_id:
             print("This is a lesson plan card, checking for feedback")
-            
+
             # Try to parse feedback from comment
             feedback_result = await handle_lesson_plan_feedback(comment_text, card_id, card_details)
-            
+
             if feedback_result:
                 print(f"Feedback processed: {feedback_result}")
                 # Post acknowledgment comment
@@ -210,11 +210,11 @@ async def handle_comment(action):
 
 async def handle_lesson_plan_feedback(comment_text, card_id, card_details):
     """Parse and submit feedback for lesson plan cards"""
-    
+
     # Extract lesson plan ID from card description
     card_desc = card_details.get("desc", "")
     lesson_plan_id = None
-    
+
     # Look for lesson plan ID in the card description
     import re
     plan_id_match = re.search(r'\*\*Plan ID:\*\* (\w+)', card_desc)
@@ -233,52 +233,52 @@ async def handle_lesson_plan_feedback(comment_text, card_id, card_details):
             else:
                 # Fallback: use card name or ID
                 lesson_plan_id = card_details.get("name", card_id).replace(" ", "_").lower()
-    
+
     print(f"Extracted lesson plan ID: {lesson_plan_id}")
-    
+
     # Parse feedback from comment
     comment_lower = comment_text.lower()
     feedback_data = None
-    
+
     if "like:" in comment_lower or "@ai like" in comment_lower:
         if "like:" in comment_text:
             feedback_text = comment_text.split("like:", 1)[1].strip()
         else:
             feedback_text = comment_text.replace("@ai like", "").strip()
-        
+
         feedback_data = {
             "lesson_plan_id": lesson_plan_id,
             "feedback_type": "like",
             "feedback_text": feedback_text,
             "source": f"trello_comment:{card_id}"
         }
-    
+
     elif "dislike:" in comment_lower or "@ai dislike" in comment_lower:
         if "dislike:" in comment_text:
             feedback_text = comment_text.split("dislike:", 1)[1].strip()
         else:
             feedback_text = comment_text.replace("@ai dislike", "").strip()
-        
+
         feedback_data = {
             "lesson_plan_id": lesson_plan_id,
             "feedback_type": "dislike",
             "feedback_text": feedback_text,
             "source": f"trello_comment:{card_id}"
         }
-    
+
     elif "improve:" in comment_lower or "@ai improve" in comment_lower:
         if "improve:" in comment_text:
             feedback_text = comment_text.split("improve:", 1)[1].strip()
         else:
             feedback_text = comment_text.replace("@ai improve", "").strip()
-        
+
         feedback_data = {
             "lesson_plan_id": lesson_plan_id,
             "feedback_type": "improve",
             "feedback_text": feedback_text,
             "source": f"trello_comment:{card_id}"
         }
-    
+
     elif "rating:" in comment_lower:
         # Extract rating (e.g., "@ai rating: 4/5" or "@ai rating: 3")
         rating_match = re.search(r'rating:\s*(\d+)(?:/\d+)?', comment_text, re.IGNORECASE)
@@ -291,23 +291,23 @@ async def handle_lesson_plan_feedback(comment_text, card_id, card_details):
                 "rating": rating,
                 "source": f"trello_comment:{card_id}"
             }
-    
+
     # Submit feedback to MCP API if parsed successfully
     if feedback_data:
         try:
             mcp_api_url = "https://89npxchg5j.execute-api.us-east-1.amazonaws.com/dev/feedback"
-            
+
             async with httpx.AsyncClient() as client:
                 response = await client.post(mcp_api_url, json=feedback_data)
                 response.raise_for_status()
                 result = response.json()
                 print(f"Feedback submitted to MCP: {result}")
                 return result
-                
+
         except Exception as e:
             print(f"Error submitting feedback to MCP: {e}")
             return None
-    
+
     return None
 
 
