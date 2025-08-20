@@ -61,23 +61,10 @@ jobs:
         with:
           python-version: '3.11'
 
-      - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v3
-        with:
-          terraform_version: "1.5"
-          
-      - name: Get GitHub Actions Role ARN from Terraform
-        run: |
-          cd terraform/environments/multi-env
-          terraform init
-          terraform workspace select dev
-          ROLE_ARN=$(terraform output -raw github_actions_role_arn)
-          echo "GITHUB_ACTIONS_ROLE_ARN=$ROLE_ARN" >> $GITHUB_ENV
-        
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          role-to-assume: ${{ env.GITHUB_ACTIONS_ROLE_ARN }}
+          role-to-assume: arn:aws:iam::123324351829:role/curriculum-designer-github-actions
           role-session-name: GitHubActions-${{ github.run_id }}
           aws-region: ${{ env.AWS_REGION }}
 
