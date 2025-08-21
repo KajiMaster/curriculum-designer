@@ -1,0 +1,13 @@
+{
+  "mcpServers": {
+    "curriculum-designer": {
+      "command": "python",
+      "args": ["/home/kaji/curriculum-designer/mcp-server/server.py"],
+      "env": {
+        "TRELLO_API_KEY": "your_trello_api_key_here",
+        "TRELLO_TOKEN": "your_trello_token_here", 
+        "TRELLO_BOARD_ID": "your_board_id_here"
+      }
+    }
+  }
+}

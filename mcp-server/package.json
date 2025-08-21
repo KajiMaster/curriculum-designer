@@ -1,0 +1,17 @@
+{
+  "name": "curriculum-designer-mcp",
+  "version": "1.0.0",
+  "description": "MCP server for curriculum designer Trello integration",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "dev": "node index.js"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^0.4.0",
+    "node-fetch": "^2.7.0"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
