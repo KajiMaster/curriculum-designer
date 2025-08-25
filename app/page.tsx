@@ -20,7 +20,7 @@ export default function Home() {
             </div>
             <div className="flex items-center">
               <span className="text-green-600 mr-2">✅</span>
-              <span>Vercel deployment pipeline</span>
+              <span>AWS Lambda deployment pipeline</span>
             </div>
             <div className="flex items-center">
               <span className="text-green-600 mr-2">✅</span>
@@ -28,7 +28,7 @@ export default function Home() {
             </div>
             <div className="flex items-center">
               <span className="text-green-600 mr-2">✅</span>
-              <span>Terraform infrastructure (AWS + Vercel)</span>
+              <span>Terraform infrastructure (AWS)</span>
             </div>
           </div>
         </div>

@@ -22,4 +22,4 @@ variable "base_domain" {
   type        = string
 }
 
-# Database URLs will be managed by Vercel automatically
+# Database URLs will be managed via environment variables
