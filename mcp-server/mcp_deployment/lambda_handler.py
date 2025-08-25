@@ -105,7 +105,10 @@ class MCPLambdaHandler:
                             'sync_lesson_plans_to_trello',
                             'submit_feedback',
                             'get_lesson_plan_feedback',
-                            'analyze_feedback_patterns'
+                            'analyze_feedback_patterns',
+                            'create_canva_presentation',
+                            'create_canva_activity_card',
+                            'export_canva_design'
                         ]
                     }),
                     'headers': {'Content-Type': 'application/json'}
@@ -326,6 +329,152 @@ class MCPLambdaHandler:
                     'headers': {'Content-Type': 'application/json'}
                 }
             
+            elif path == '/canva-presentation' and method == 'POST':
+                # Create Canva presentation from lesson plan
+                if event.get('body'):
+                    if event.get('isBase64Encoded'):
+                        body = base64.b64decode(event['body']).decode('utf-8')
+                    else:
+                        body = event['body']
+                    
+                    params = json.loads(body) if isinstance(body, str) else body
+                else:
+                    return {
+                        'statusCode': 400,
+                        'body': json.dumps({'error': 'Request body required'}),
+                        'headers': {'Content-Type': 'application/json'}
+                    }
+                
+                result = await self.mcp_server.create_canva_presentation(
+                    lesson_plan_id=params.get('lesson_plan_id'),
+                    lesson_plan_data=params.get('lesson_plan_data')
+                )
+                
+                return {
+                    'statusCode': 200,
+                    'body': json.dumps(result, indent=2),
+                    'headers': {'Content-Type': 'application/json'}
+                }
+            
+            elif path == '/canva-activity-card' and method == 'POST':
+                # Create Canva activity card
+                if event.get('body'):
+                    if event.get('isBase64Encoded'):
+                        body = base64.b64decode(event['body']).decode('utf-8')
+                    else:
+                        body = event['body']
+                    
+                    params = json.loads(body) if isinstance(body, str) else body
+                else:
+                    return {
+                        'statusCode': 400,
+                        'body': json.dumps({'error': 'Request body required'}),
+                        'headers': {'Content-Type': 'application/json'}
+                    }
+                
+                result = await self.mcp_server.create_canva_activity_card(
+                    activity_data=params.get('activity_data', {})
+                )
+                
+                return {
+                    'statusCode': 200,
+                    'body': json.dumps(result, indent=2),
+                    'headers': {'Content-Type': 'application/json'}
+                }
+            
+            elif path.startswith('/canva-export/') and method == 'POST':
+                # Export Canva design
+                design_id = path.split('/')[-1]
+                
+                if event.get('body'):
+                    if event.get('isBase64Encoded'):
+                        body = base64.b64decode(event['body']).decode('utf-8')
+                    else:
+                        body = event['body']
+                    
+                    params = json.loads(body) if isinstance(body, str) else body
+                    format = params.get('format', 'pdf')
+                else:
+                    format = 'pdf'
+                
+                result = await self.mcp_server.export_canva_design(design_id, format)
+                
+                return {
+                    'statusCode': 200,
+                    'body': json.dumps(result, indent=2),
+                    'headers': {'Content-Type': 'application/json'}
+                }
+            
+            elif path == '/webhook' and method == 'POST':
+                # Handle Trello webhook for @ai comments
+                if event.get('body'):
+                    if event.get('isBase64Encoded'):
+                        body = base64.b64decode(event['body']).decode('utf-8')
+                    else:
+                        body = event['body']
+                    
+                    webhook_data = json.loads(body) if isinstance(body, str) else body
+                    
+                    # Process the webhook
+                    result = await self._handle_trello_webhook(webhook_data)
+                    
+                    return {
+                        'statusCode': 200,
+                        'body': json.dumps(result),
+                        'headers': {'Content-Type': 'application/json'}
+                    }
+                else:
+                    return {
+                        'statusCode': 400,
+                        'body': json.dumps({'error': 'Webhook body required'}),
+                        'headers': {'Content-Type': 'application/json'}
+                    }
+            
+            elif path == '/webhook' and method == 'HEAD':
+                # Webhook verification endpoint
+                return {
+                    'statusCode': 200,
+                    'body': '',
+                    'headers': {'Content-Type': 'application/json'}
+                }
+            
+            elif path == '/canva-callback' and method == 'GET':
+                # Handle Canva OAuth callback
+                query_params = event.get('queryStringParameters') or {}
+                auth_code = query_params.get('code')
+                
+                if auth_code:
+                    return {
+                        'statusCode': 200,
+                        'body': f'''<!DOCTYPE html>
+<html>
+<head><title>Canva Authorization Success</title></head>
+<body>
+<h1>✅ Authorization Successful!</h1>
+<p>Your authorization code is:</p>
+<p><code>{auth_code}</code></p>
+<p>Copy this code and use it to complete the token exchange.</p>
+<script>
+console.log("Authorization code:", "{auth_code}");
+</script>
+</body>
+</html>''',
+                        'headers': {'Content-Type': 'text/html'}
+                    }
+                else:
+                    return {
+                        'statusCode': 400,
+                        'body': '''<!DOCTYPE html>
+<html>
+<head><title>Canva Authorization Failed</title></head>
+<body>
+<h1>❌ Authorization Failed</h1>
+<p>No authorization code received.</p>
+</body>
+</html>''',
+                        'headers': {'Content-Type': 'text/html'}
+                    }
+            
             else:
                 return {
                     'statusCode': 404,
@@ -489,6 +638,40 @@ class MCPLambdaHandler:
                     "type": "object",
                     "properties": {}
                 }
+            },
+            {
+                "name": "create_canva_presentation",
+                "description": "Create a Canva presentation from a lesson plan",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {
+                        "lesson_plan_id": {"type": "string", "description": "ID of saved lesson plan to convert"},
+                        "lesson_plan_data": {"type": "object", "description": "Direct lesson plan data to convert"}
+                    }
+                }
+            },
+            {
+                "name": "create_canva_activity_card",
+                "description": "Create a Canva activity card design",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {
+                        "activity_data": {"type": "object", "description": "Activity data including name, duration, description, etc."}
+                    },
+                    "required": ["activity_data"]
+                }
+            },
+            {
+                "name": "export_canva_design",
+                "description": "Export a Canva design to PDF, PNG, or JPG",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {
+                        "design_id": {"type": "string", "description": "Canva design ID to export"},
+                        "format": {"type": "string", "description": "Export format: pdf, png, or jpg (default: pdf)"}
+                    },
+                    "required": ["design_id"]
+                }
             }
         ]
 
@@ -522,8 +705,221 @@ class MCPLambdaHandler:
             return await self.mcp_server.get_lesson_plan_feedback(**arguments)
         elif name == "analyze_feedback_patterns":
             return await self.mcp_server.analyze_feedback_patterns()
+        elif name == "create_canva_presentation":
+            return await self.mcp_server.create_canva_presentation(**arguments)
+        elif name == "create_canva_activity_card":
+            return await self.mcp_server.create_canva_activity_card(**arguments)
+        elif name == "export_canva_design":
+            return await self.mcp_server.export_canva_design(**arguments)
         else:
             raise ValueError(f"Unknown tool: {name}")
+
+    async def _handle_trello_webhook(self, webhook_data: Dict[str, Any]) -> Dict[str, Any]:
+        """Handle Trello webhook for @ai comments"""
+        try:
+            action = webhook_data.get('action', {})
+            action_type = action.get('type')
+            
+            # Quick return for non-comment actions
+            if action_type != 'commentCard':
+                return {
+                    'status': 'ignored',
+                    'action': action_type,
+                    'reason': 'not a comment',
+                    'processed': False
+                }
+            
+            print(f"📨 Received Trello webhook: {action_type}")
+            
+            # Only process comment actions
+            if action_type == 'commentCard':
+                comment_text = action.get('data', {}).get('text', '').strip()
+                card_data = action.get('data', {}).get('card', {})
+                card_id = card_data.get('id')
+                card_name = card_data.get('name')
+                
+                print(f"💬 Comment on card '{card_name}': {comment_text}")
+                
+                # Check if comment mentions @ai (must be explicit mention)
+                # Ignore comments that start with bot response indicators
+                bot_prefixes = ['🤖', '✅', '🎨', '❌', '🔍', '💬', '📨', '💾', '💡', '⚠️']
+                is_bot_comment = any(comment_text.startswith(prefix) for prefix in bot_prefixes)
+                
+                if '@ai' in comment_text.lower() and not is_bot_comment:
+                    print("🤖 Processing @ai request...")
+                    
+                    # Extract the actual request (remove @ai)
+                    request_text = comment_text.lower().replace('@ai', '').strip()
+                    
+                    # Process based on request type
+                    if any(keyword in request_text for keyword in ['lesson plan', 'lesson', 'plan']):
+                        # Generate lesson plan request
+                        result = await self._process_lesson_plan_request(card_id, card_name, request_text)
+                    elif 'presentation' in request_text or 'canva' in request_text:
+                        # Generate presentation request
+                        result = await self._process_presentation_request(card_id, card_name, request_text)
+                    else:
+                        # General curriculum assistance
+                        result = await self._process_general_request(card_id, card_name, request_text)
+                    
+                    # Post response back to Trello card
+                    await self._post_trello_comment(card_id, result.get('response', 'Processing completed.'))
+                    
+                    return {
+                        'status': 'processed',
+                        'action': action_type,
+                        'card_id': card_id,
+                        'processed': True,
+                        'result': result
+                    }
+                else:
+                    print("ℹ️  Comment doesn't contain @ai, ignoring")
+                    
+            return {
+                'status': 'ignored',
+                'action': action_type,
+                'processed': False
+            }
+            
+        except Exception as e:
+            print(f"❌ Error processing webhook: {str(e)}")
+            return {
+                'status': 'error',
+                'error': str(e),
+                'processed': False
+            }
+
+    async def _process_lesson_plan_request(self, card_id: str, card_name: str, request_text: str) -> Dict[str, Any]:
+        """Process lesson plan generation request"""
+        try:
+            # Extract parameters from request text and card name
+            # You can enhance this with more sophisticated parsing
+            lesson_plan = await self.mcp_server.suggest_lesson_plan(
+                student_level="intermediate",  # Default, could parse from request
+                focus_area=card_name,  # Use card name as focus area
+                total_duration=90  # Default duration
+            )
+            
+            # Save the lesson plan
+            save_result = await self.mcp_server.save_lesson_plan(lesson_plan=lesson_plan)
+            
+            response = f"✅ **Lesson Plan Generated!**\n\n"
+            response += f"**Title:** {lesson_plan.get('title', 'Untitled')}\n"
+            response += f"**Level:** {lesson_plan.get('level', 'N/A')}\n"
+            response += f"**Duration:** {lesson_plan.get('total_duration', 'N/A')} minutes\n"
+            response += f"**Activities:** {len(lesson_plan.get('structure', {}).get('main_activities', []))}\n\n"
+            response += f"💾 Saved as ID: `{save_result.get('lesson_plan_id')}`\n\n"
+            response += f"💡 Reply with `@ai create presentation {save_result.get('lesson_plan_id')}` to generate Canva slides!"
+            
+            return {
+                'type': 'lesson_plan',
+                'lesson_plan_id': save_result.get('lesson_plan_id'),
+                'response': response
+            }
+            
+        except Exception as e:
+            return {
+                'type': 'lesson_plan',
+                'error': str(e),
+                'response': f"❌ Error generating lesson plan: {str(e)}"
+            }
+
+    async def _process_presentation_request(self, card_id: str, card_name: str, request_text: str) -> Dict[str, Any]:
+        """Process presentation generation request"""
+        try:
+            # Extract lesson plan ID from request if provided
+            import re
+            plan_id_match = re.search(r'presentation\s+([a-zA-Z0-9_-]+)', request_text)
+            
+            if plan_id_match:
+                plan_id = plan_id_match.group(1)
+                # Generate presentation from existing lesson plan
+                result = await self.mcp_server.create_canva_presentation(lesson_plan_id=plan_id)
+            else:
+                # Generate lesson plan first, then presentation
+                lesson_plan = await self.mcp_server.suggest_lesson_plan(
+                    student_level="intermediate",
+                    focus_area=card_name,
+                    total_duration=90
+                )
+                result = await self.mcp_server.create_canva_presentation(lesson_plan_data=lesson_plan)
+            
+            if result.get('design_id'):
+                response = f"🎨 **Canva Presentation Created!**\n\n"
+                response += f"**Design ID:** {result.get('design_id')}\n"
+                response += f"**Title:** {result.get('title')}\n"
+                response += f"**Slides:** {result.get('slides_count')}\n\n"
+                response += f"🎭 **Edit in Canva:** {result.get('edit_url')}\n"
+                response += f"👁️ **Preview:** {result.get('view_url')}"
+            else:
+                response = f"⚠️ Presentation structure created but needs manual content population in Canva."
+            
+            return {
+                'type': 'presentation',
+                'design_id': result.get('design_id'),
+                'response': response
+            }
+            
+        except Exception as e:
+            return {
+                'type': 'presentation',
+                'error': str(e),
+                'response': f"❌ Error generating presentation: {str(e)}"
+            }
+
+    async def _process_general_request(self, card_id: str, card_name: str, request_text: str) -> Dict[str, Any]:
+        """Process general curriculum assistance request"""
+        try:
+            # Search for relevant activities
+            search_results = await self.mcp_server.search_activities(request_text)
+            
+            response = f"🔍 **Found {len(search_results)} activities:**\n\n"
+            
+            for i, activity in enumerate(search_results[:5], 1):  # Show top 5
+                response += f"{i}. **{activity.get('name', 'Untitled')}**\n"
+                response += f"   ⏱️ {activity.get('duration', 'N/A')} min | "
+                response += f"📊 {activity.get('level', 'N/A')} | "
+                response += f"🏷️ {activity.get('category', 'N/A')}\n"
+                if activity.get('description'):
+                    response += f"   📝 {activity.get('description')[:100]}...\n"
+                response += "\n"
+            
+            response += f"💡 Try: `@ai lesson plan` or `@ai presentation` for more specific help!"
+            
+            return {
+                'type': 'general',
+                'results_count': len(search_results),
+                'response': response
+            }
+            
+        except Exception as e:
+            return {
+                'type': 'general',
+                'error': str(e),
+                'response': f"❌ Error processing request: {str(e)}"
+            }
+
+    async def _post_trello_comment(self, card_id: str, comment_text: str) -> None:
+        """Post a comment back to the Trello card"""
+        try:
+            trello_api_key = os.getenv('TRELLO_API_KEY')
+            trello_token = os.getenv('TRELLO_TOKEN')
+            
+            url = f"https://api.trello.com/1/cards/{card_id}/actions/comments"
+            
+            data = {
+                'text': comment_text,
+                'key': trello_api_key,
+                'token': trello_token
+            }
+            
+            async with httpx.AsyncClient() as client:
+                response = await client.post(url, data=data)
+                response.raise_for_status()
+                print(f"✅ Posted comment to Trello card {card_id}")
+                
+        except Exception as e:
+            print(f"❌ Error posting Trello comment: {str(e)}")
 
 
 # Lambda handler function

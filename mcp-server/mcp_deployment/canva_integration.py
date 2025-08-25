@@ -15,9 +15,11 @@ class CanvaDesignGenerator:
         # Load credentials from Parameter Store
         self.canva_client_id = self._get_parameter("/global/curriculum-designer/canva-client-id")
         self.canva_client_secret = self._get_parameter("/global/curriculum-designer/canva-client-secret")
-        self.canva_access_token = os.getenv("CANVA_ACCESS_TOKEN")
-        self.canva_refresh_token = os.getenv("CANVA_REFRESH_TOKEN")
         self.base_url = "https://api.canva.com/rest/v1"
+        
+        # Load tokens from Parameter Store
+        self.canva_access_token = self._get_parameter("/global/curriculum-designer/canva-access-token")
+        self.canva_refresh_token = self._get_parameter("/global/curriculum-designer/canva-refresh-token")
         
         # Template IDs for different types of educational content
         self.templates = {
@@ -25,6 +27,19 @@ class CanvaDesignGenerator:
             "activity_card": os.getenv("CANVA_ACTIVITY_TEMPLATE_ID"),
             "worksheet": os.getenv("CANVA_WORKSHEET_TEMPLATE_ID")
         }
+    
+    def _get_parameter(self, parameter_name: str) -> Optional[str]:
+        """Get parameter from AWS Parameter Store"""
+        try:
+            import boto3
+            ssm = boto3.client('ssm')
+            response = ssm.get_parameter(Name=parameter_name, WithDecryption=True)
+            value = response['Parameter']['Value']
+            print(f"✅ Successfully loaded parameter {parameter_name}")
+            return value
+        except Exception as e:
+            print(f"❌ Could not load parameter {parameter_name}: {e}")
+            return None
     
     async def create_lesson_presentation(self, lesson_plan: Dict[str, Any]) -> Dict[str, Any]:
         """
@@ -220,10 +235,14 @@ class CanvaDesignGenerator:
         """
         Create a design in Canva using the API
         """
+        print(f"🎨 Creating Canva design: {title}")
+        print(f"📊 Access token available: {bool(self.canva_access_token)}")
+        
         if not self.canva_access_token:
+            print("❌ No access token available")
             return {
                 "error": "Canva access token not configured",
-                "note": "Set CANVA_ACCESS_TOKEN environment variable",
+                "note": "Token not loaded from Parameter Store",
                 "slides_data": slides_data,
                 "status": "ready_for_manual_creation"
             }
@@ -233,21 +252,26 @@ class CanvaDesignGenerator:
             "Content-Type": "application/json"
         }
         
-        # Create the design
+        # Create the design - correct format for Canva API
         design_data = {
-            "design_type": design_type,
-            "title": title,
-            "asset_types": ["image", "text"]
+            "design_type": {
+                "type": "preset",
+                "name": design_type
+            },
+            "title": title
         }
         
         async with httpx.AsyncClient() as client:
             try:
-                # Create the base design
+                print(f"🚀 Making API call to Canva with data: {design_data}")
+                # Create the design using Canva API
                 response = await client.post(
                     f"{self.base_url}/designs",
                     headers=headers,
                     json=design_data
                 )
+                print(f"📡 API Response Status: {response.status_code}")
+                print(f"📝 API Response: {response.text[:200]}...")
                 
                 # If token expired, try to refresh and retry once
                 if response.status_code == 401:
@@ -267,8 +291,11 @@ class CanvaDesignGenerator:
                 
                 response.raise_for_status()
                 
-                design = response.json()
+                response_data = response.json()
+                design = response_data.get("design", {})
                 design_id = design.get("id")
+                
+                print(f"🎉 Successfully created Canva design: {design_id}")
                 
                 # Add slides content (this would use the Design Editing API)
                 # For now, return the created design info
@@ -280,7 +307,8 @@ class CanvaDesignGenerator:
                     "slides_count": len(slides_data),
                     "slides_data": slides_data,
                     "status": "created",
-                    "note": "Design created successfully. Slide content prepared for manual application."
+                    "note": "Design created successfully in Canva! Click edit_url to view and customize.",
+                    "canva_design_created": True
                 }
                 
             except httpx.HTTPStatusError as e:
@@ -310,7 +338,7 @@ class CanvaDesignGenerator:
         # Create a custom design for the card
         design = await self._create_design(
             title=f"Activity: {card_data['title']}",
-            design_type="custom",  # Using custom dimensions for cards
+            design_type="presentation",  # Using presentation type for cards too
             slides_data=[{"type": "activity_card", "elements": card_data}]
         )
         

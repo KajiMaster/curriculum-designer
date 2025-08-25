@@ -18,6 +18,7 @@ import httpx
 import boto3
 from botocore.exceptions import ClientError
 from decimal import Decimal
+from canva_integration import CanvaDesignGenerator
 
 
 def decimal_to_int(obj):
@@ -55,6 +56,9 @@ class CurriculumMCPServer:
         # Lesson Plans Trello Board integration
         self.lesson_plans_board_id = os.getenv("TRELLO_LESSON_PLANS_BOARD_ID")
         self.active_list_id = os.getenv("TRELLO_ACTIVE_LIST_ID")
+        
+        # Canva integration
+        self.canva_generator = CanvaDesignGenerator()
         
         if not all([self.trello_key, self.trello_token, self.board_id]):
             raise ValueError("Missing required environment variables: TRELLO_API_KEY, TRELLO_TOKEN, TRELLO_BOARD_ID")
@@ -750,6 +754,66 @@ class CurriculumMCPServer:
         
         return None
 
+    async def create_canva_presentation(self, lesson_plan_id: Optional[str] = None, lesson_plan_data: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+        """Create a Canva presentation from a lesson plan"""
+        
+        # Get lesson plan data if ID provided
+        if lesson_plan_id and not lesson_plan_data:
+            lesson_plan_result = await self.get_lesson_plan_by_id(lesson_plan_id)
+            if lesson_plan_result.get("error"):
+                return lesson_plan_result
+            lesson_plan_data = lesson_plan_result.get("lesson_plan", {})
+        
+        if not lesson_plan_data:
+            return {"error": "No lesson plan data provided"}
+        
+        # Create Canva presentation
+        design = await self.canva_generator.create_lesson_presentation(lesson_plan_data)
+        
+        # If successful, save the design reference
+        if design.get("design_id") and lesson_plan_id:
+            # Update the lesson plan in DynamoDB with Canva design info
+            if self.table:
+                try:
+                    self.table.update_item(
+                        Key={"id": lesson_plan_id, "type": "lesson_plan"},
+                        UpdateExpression="SET canva_design = :design",
+                        ExpressionAttributeValues={
+                            ":design": {
+                                "design_id": design["design_id"],
+                                "edit_url": design.get("edit_url", ""),
+                                "view_url": design.get("view_url", ""),
+                                "created_at": datetime.now().isoformat()
+                            }
+                        }
+                    )
+                except Exception as e:
+                    print(f"Error updating lesson plan with Canva design: {e}")
+        
+        return design
+    
+    async def create_canva_activity_card(self, activity_data: Dict[str, Any]) -> Dict[str, Any]:
+        """Create a Canva activity card from activity data"""
+        
+        if not activity_data:
+            return {"error": "No activity data provided"}
+        
+        # Create Canva activity card
+        card = await self.canva_generator.create_activity_card(activity_data)
+        
+        return card
+    
+    async def export_canva_design(self, design_id: str, format: str = "pdf") -> Dict[str, Any]:
+        """Export a Canva design to a specific format"""
+        
+        if not design_id:
+            return {"error": "Design ID required"}
+        
+        # Export the design
+        export_result = await self.canva_generator.export_design(design_id, format)
+        
+        return export_result
+    
     async def get_comprehensive_resources(self, topic: Optional[str] = None) -> Dict[str, Any]:
         """Get all available resources for a topic from all sources"""
         
