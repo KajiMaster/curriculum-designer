@@ -19,6 +19,7 @@ import boto3
 from botocore.exceptions import ClientError
 from decimal import Decimal
 from canva_integration import CanvaDesignGenerator
+from course_framework import CourseFrameworkManager, FrameworkVariantGenerator, TrelloVariantCreator
 
 
 def decimal_to_int(obj):
@@ -34,9 +35,10 @@ def decimal_to_int(obj):
 
 class CurriculumMCPServer:
     def __init__(self):
-        self.trello_key = os.getenv("TRELLO_API_KEY")
-        self.trello_token = os.getenv("TRELLO_TOKEN") 
-        self.board_id = os.getenv("TRELLO_BOARD_ID")
+        # Load credentials from Parameter Store
+        self.trello_key = self._get_parameter("/global/curriculum-designer/trello-api-key")
+        self.trello_token = self._get_parameter("/global/curriculum-designer/trello-token") 
+        self.board_id = os.getenv("TRELLO_BOARD_ID")  # This might need to be set per deployment
         
         # Google Drive integration
         self.google_drive_folder_id = os.getenv("GOOGLE_DRIVE_FOLDER_ID")
@@ -60,8 +62,28 @@ class CurriculumMCPServer:
         # Canva integration
         self.canva_generator = CanvaDesignGenerator()
         
+        # Course Framework Management
+        self.framework_manager = CourseFrameworkManager(
+            table_name=os.getenv("DYNAMODB_FRAMEWORKS_TABLE", "curriculum-frameworks")
+        )
+        self.variant_generator = FrameworkVariantGenerator(openai_client=None)  # Will be initialized when needed
+        self.trello_variant_creator = TrelloVariantCreator(self.trello_key, self.trello_token)
+        
         if not all([self.trello_key, self.trello_token, self.board_id]):
             raise ValueError("Missing required environment variables: TRELLO_API_KEY, TRELLO_TOKEN, TRELLO_BOARD_ID")
+    
+    def _get_parameter(self, parameter_name: str) -> Optional[str]:
+        """Get parameter from AWS Parameter Store"""
+        try:
+            import boto3
+            ssm = boto3.client('ssm')
+            response = ssm.get_parameter(Name=parameter_name, WithDecryption=True)
+            value = response['Parameter']['Value']
+            print(f"✅ Successfully loaded parameter {parameter_name}")
+            return value
+        except Exception as e:
+            print(f"❌ Could not load parameter {parameter_name}: {e}")
+            return None
 
     async def get_activities(self, category: Optional[str] = None, 
                            level: Optional[str] = None, 
@@ -854,3 +876,244 @@ class CurriculumMCPServer:
         }
         
         return resources
+    
+    async def store_course_framework(self, 
+                                    framework_name: str,
+                                    framework_data: Dict[str, Any],
+                                    metadata: Optional[Dict] = None) -> str:
+        """
+        Store a course framework for long-term memory
+        
+        Args:
+            framework_name: Name of the framework
+            framework_data: The framework structure and content
+            metadata: Additional metadata
+            
+        Returns:
+            framework_id: Unique ID for the stored framework
+        """
+        return self.framework_manager.store_framework(
+            board_id=self.board_id,
+            framework_name=framework_name,
+            framework_data=framework_data,
+            metadata=metadata
+        )
+    
+    async def generate_framework_variants(self,
+                                         framework_id: str,
+                                         variant_params: Optional[Dict] = None,
+                                         num_variants: int = 3,
+                                         create_cards: bool = True,
+                                         list_name: str = "Framework Variants") -> Dict[str, Any]:
+        """
+        Generate variants of a stored framework and optionally create Trello cards
+        
+        Args:
+            framework_id: ID of the stored framework
+            variant_params: Parameters for variation
+            num_variants: Number of variants to generate
+            create_cards: Whether to create Trello cards for variants
+            list_name: Name of the Trello list for variant cards
+            
+        Returns:
+            Generated variants and card IDs
+        """
+        # Retrieve the framework
+        framework = self.framework_manager.get_framework(framework_id)
+        if not framework:
+            return {"error": "Framework not found"}
+        
+        # Set default variant parameters if not provided
+        if not variant_params:
+            variant_params = {
+                'levels': ['B1', 'B2', 'C1'],
+                'focus': ['general', 'business', 'academic'],
+                'durations': ['4-week', '8-week', '12-week'],
+                'intensities': ['standard', 'intensive']
+            }
+        
+        # Initialize OpenAI client if needed
+        if not self.variant_generator.openai_client:
+            import openai
+            openai.api_key = os.getenv("OPENAI_API_KEY")
+            self.variant_generator.openai_client = openai
+        
+        # Generate variants
+        variants = self.variant_generator.generate_variants(
+            framework=framework,
+            variant_params=variant_params,
+            num_variants=num_variants
+        )
+        
+        # Create Trello cards if requested
+        card_ids = []
+        if create_cards:
+            card_ids = self.trello_variant_creator.create_variant_cards(
+                board_id=self.board_id,
+                list_name=list_name,
+                variants=variants
+            )
+        
+        return {
+            "framework_id": framework_id,
+            "framework_name": framework.get('framework_name'),
+            "variants": variants,
+            "card_ids": card_ids,
+            "variants_created": len(variants),
+            "cards_created": len(card_ids)
+        }
+    
+    async def list_stored_frameworks(self) -> List[Dict]:
+        """
+        List all stored frameworks for the current board
+        
+        Returns:
+            List of framework summaries
+        """
+        frameworks = self.framework_manager.list_frameworks(self.board_id)
+        
+        # Create summaries
+        summaries = []
+        for framework in frameworks:
+            summaries.append({
+                "id": framework.get('framework_id'),
+                "name": framework.get('framework_name'),
+                "created_at": framework.get('created_at'),
+                "updated_at": framework.get('updated_at'),
+                "version": framework.get('version'),
+                "metadata": framework.get('metadata', {})
+            })
+        
+        return summaries
+    
+    async def handle_ai_command(self, command: str, card_context: Optional[Dict] = None) -> Dict[str, Any]:
+        """
+        Handle @ai commands from Trello comments
+        
+        Args:
+            command: The command text after @ai
+            card_context: Context about the card/board where command was issued
+            
+        Returns:
+            Response data to be posted back to Trello
+        """
+        command_lower = command.lower().strip()
+        
+        # Parse framework commands
+        if command_lower.startswith("save framework"):
+            # Extract framework data from card or comment
+            if card_context and 'description' in card_context:
+                try:
+                    # Parse JSON from card description
+                    framework_data = json.loads(card_context['description'])
+                    framework_name = card_context.get('name', 'Unnamed Framework')
+                    
+                    framework_id = await self.store_course_framework(
+                        framework_name=framework_name,
+                        framework_data=framework_data,
+                        metadata={'source': 'trello_card'}
+                    )
+                    
+                    return {
+                        "success": True,
+                        "message": f"Framework '{framework_name}' saved with ID: {framework_id}",
+                        "framework_id": framework_id
+                    }
+                except json.JSONDecodeError:
+                    return {
+                        "success": False,
+                        "message": "Could not parse framework data from card description. Please ensure it's valid JSON."
+                    }
+            else:
+                return {
+                    "success": False,
+                    "message": "No framework data found in card context."
+                }
+        
+        elif command_lower.startswith("generate variants"):
+            # Parse parameters from command
+            # Example: "@ai generate variants framework_id=xxx num=5 list=Variants"
+            params = self._parse_command_params(command)
+            
+            framework_id = params.get('framework_id') or params.get('id')
+            num_variants = int(params.get('num', 3))
+            list_name = params.get('list', 'Framework Variants')
+            
+            if not framework_id:
+                # Try to find framework ID in card context
+                if card_context and 'framework_id' in card_context:
+                    framework_id = card_context['framework_id']
+                else:
+                    return {
+                        "success": False,
+                        "message": "Please specify framework_id. Example: @ai generate variants framework_id=xxx"
+                    }
+            
+            result = await self.generate_framework_variants(
+                framework_id=framework_id,
+                num_variants=num_variants,
+                create_cards=True,
+                list_name=list_name
+            )
+            
+            if 'error' in result:
+                return {
+                    "success": False,
+                    "message": result['error']
+                }
+            
+            return {
+                "success": True,
+                "message": f"Generated {result['variants_created']} variants and created {result['cards_created']} cards in '{list_name}' list",
+                "result": result
+            }
+        
+        elif command_lower.startswith("list frameworks"):
+            frameworks = await self.list_stored_frameworks()
+            
+            if not frameworks:
+                return {
+                    "success": True,
+                    "message": "No stored frameworks found for this board.",
+                    "frameworks": []
+                }
+            
+            # Format frameworks list for display
+            framework_list = "\n".join([
+                f"- {f['name']} (ID: {f['id']}, Created: {f['created_at'][:10]})"
+                for f in frameworks
+            ])
+            
+            return {
+                "success": True,
+                "message": f"Found {len(frameworks)} stored frameworks:\n{framework_list}",
+                "frameworks": frameworks
+            }
+        
+        # Default response for unrecognized commands
+        return {
+            "success": False,
+            "message": f"Unrecognized command: '{command}'. Available commands: save framework, generate variants, list frameworks"
+        }
+    
+    def _parse_command_params(self, command: str) -> Dict[str, str]:
+        """
+        Parse parameters from command string
+        
+        Args:
+            command: Command string with parameters
+            
+        Returns:
+            Dictionary of parameters
+        """
+        params = {}
+        
+        # Find all key=value pairs
+        import re
+        pattern = r'(\w+)=([^\s]+)'
+        matches = re.findall(pattern, command)
+        
+        for key, value in matches:
+            params[key] = value
+        
+        return params

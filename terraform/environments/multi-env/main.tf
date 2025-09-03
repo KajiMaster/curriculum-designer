@@ -57,9 +57,9 @@ data "aws_lambda_layer_version" "webhook_dependencies" {
   layer_name = "curriculum-designer-webhook-dependencies"
 }
 
-data "aws_lambda_layer_version" "httpx_dependencies" {
-  layer_name = "curriculum-httpx-dependencies"
-  version    = 3
+data "aws_lambda_layer_version" "unified_dependencies" {
+  layer_name = "curriculum-designer-unified-dependencies"
+  version    = 1
 }
 
 data "aws_lambda_layer_version" "mcp_dependencies" {
@@ -187,10 +187,9 @@ resource "aws_lambda_function" "webhook_handler" {
   runtime      = "python3.11"
   timeout      = 90
 
-  # Use Lambda layers for dependencies
+  # Use unified layer for all dependencies
   layers = [
-    data.aws_lambda_layer_version.webhook_dependencies.arn,
-    data.aws_lambda_layer_version.httpx_dependencies.arn
+    data.aws_lambda_layer_version.unified_dependencies.arn
   ]
 
   # Initial deployment pointing to new structure

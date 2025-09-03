@@ -8,6 +8,12 @@ English teachers transitioning to online 1-on-1 teaching face a significant chal
 
 ## ✨ Key Features
 
+### Natural Lesson Generation ⭐ **NEW**
+- **Natural Emergence Algorithm**: Topic → 8 Vocabulary Words → Grammar Discovery → Integrated Lesson
+- **Command**: `@ai generate lesson topic="Common illnesses" level=A2`
+- **Rich Content**: Comprehensive lessons with warm-up, practice, activities, wrap-up
+- **Conversation-Driven**: Focus on natural communication, not grammar drills
+
 ### Intelligent Lesson Planning
 - **AI-Powered Activity Suggestions**: Get contextually relevant activities based on student profiles
 - **Modular Activity Library**: 25-45 minute activities with flexible endpoints
@@ -19,6 +25,29 @@ English teachers transitioning to online 1-on-1 teaching face a significant chal
 - **Natural Language Commands**: Simply comment `@ai` to get instant assistance
 - **Automated Scheduling**: Drag cards to "This Week" and get automatic prep checklists
 - **Real-Time Updates**: Webhook-powered instant responses
+
+## 💬 Usage Commands
+
+### Natural Lesson Generation
+```bash
+@ai generate lesson topic="Common illnesses" level=A2
+@ai generate lesson topic="Travel vocabulary" level=B1
+@ai generate lesson topic="Job interviews" level=C1
+```
+**Levels**: A1, A2, B1, B2, C1, C2
+**Result**: Creates new card with 8-vocabulary natural emergence lesson
+
+### Framework Management  
+```bash
+@ai save framework [framework details]
+@ai generate variants framework_id=abc123 num=3
+@ai list frameworks
+```
+
+### General AI Assistance
+```bash
+@ai [any teaching question or request]
+```
 
 ### Content Generation
 - **Canva Integration**: Automated creation of professional lesson presentations
@@ -179,33 +208,37 @@ cd mcp-server
 
 ```
 curriculum-designer/
-├── app/                    # Next.js app router pages
-│   ├── activities/        # Activities management UI
-│   ├── api/               # API routes
-│   ├── layout.tsx         # Root layout
-│   └── page.tsx           # Home page
-├── components/            # React components
-├── lib/                   # Utility functions and configs
-├── prisma/                # Database schema and migrations
-├── mcp-server/            # MCP integration server (Python)
-│   ├── lambda_handler.py  # AWS Lambda webhook handler
-│   ├── server.py          # MCP server implementation
-│   ├── canva_integration.py # Canva API integration
-│   └── requirements.txt   # Python dependencies
+├── lambda-deployments/     # AWS Lambda functions (MAIN)
+│   ├── webhook-handler/   # Trello webhook processor
+│   │   ├── src/lambda_function.py  # Natural lesson generation + AI commands
+│   │   └── deployment.zip # Built package
+│   └── mcp-server/        # MCP server for Claude integration
+│       ├── src/lambda_function.py  # MCP protocol implementation
+│       └── deployment.zip # Built package
 ├── terraform/             # Infrastructure as code
-│   └── environments/      # Environment-specific configs
-└── .github/               # CI/CD workflows
+│   ├── environments/      # Multi-environment configs
+│   └── global/           # Shared resources (layers, IAM)
+├── scripts/               # Deployment and setup utilities
+├── .github/               # CI/CD workflows
+├── app/                   # Next.js app (optional/legacy)
+├── prisma/                # Database schema (optional/legacy)
+└── *.md                   # Documentation
 ```
 
 ## 🔑 Key Workflows
 
-### Teacher Creates a Lesson Plan
+### Teacher Creates a Natural Lesson
 1. Teacher opens their Trello board
-2. Comments `@ai suggest activities for B2 lawyer focusing on negotiations`
-3. AI responds with 3-5 relevant activity suggestions
-4. Teacher selects activities and moves to "This Week"
-5. System automatically generates preparation checklist
-6. Canva presentation created automatically
+2. Comments `@ai generate lesson topic="Common illnesses" level=A2`
+3. AI generates 8 essential vocabulary words for the topic
+4. AI discovers natural grammar patterns people use with those words
+5. AI creates comprehensive lesson plan with integrated activities
+6. System creates new Trello card with complete lesson content
+
+### Teacher Gets AI Assistance
+1. Teacher comments `@ai suggest activities for B2 lawyer focusing on negotiations`
+2. AI responds with contextually relevant suggestions
+3. Teacher can ask follow-up questions or request modifications
 
 ### Student Assessment Flow
 1. New student completes initial assessment
@@ -217,6 +250,14 @@ curriculum-designer/
 ## 🤝 Contributing
 
 Contributions are welcome! Please feel free to submit a Pull Request.
+
+## 📚 Documentation
+
+For detailed technical information:
+- **`NATURAL_LESSON_STATUS.md`** - Natural lesson generation implementation status and troubleshooting
+- **`PROJECT_ARCHITECTURE.md`** - Complete system architecture and data flows
+- **`terraform/`** - Infrastructure configuration and deployment
+- **`lambda-deployments/`** - Lambda function code and dependencies
 
 ## 📄 License
 

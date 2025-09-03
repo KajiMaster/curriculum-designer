@@ -26,6 +26,19 @@ class CanvaDesignGenerator:
             "worksheet": os.getenv("CANVA_WORKSHEET_TEMPLATE_ID")
         }
     
+    def _get_parameter(self, parameter_name: str) -> Optional[str]:
+        """Get parameter from AWS Parameter Store"""
+        try:
+            import boto3
+            ssm = boto3.client('ssm')
+            response = ssm.get_parameter(Name=parameter_name, WithDecryption=True)
+            value = response['Parameter']['Value']
+            print(f"✅ Successfully loaded parameter {parameter_name}")
+            return value
+        except Exception as e:
+            print(f"❌ Could not load parameter {parameter_name}: {e}")
+            return None
+    
     async def create_lesson_presentation(self, lesson_plan: Dict[str, Any]) -> Dict[str, Any]:
         """
         Create a complete Canva presentation from a lesson plan

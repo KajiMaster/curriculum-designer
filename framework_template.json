@@ -1,0 +1,187 @@
+{
+  "framework_name": "Preferences Introduction Framework",
+  "description": "A pedagogical framework for teaching personal preferences using preference verbs + -ing and connectors, designed for A1-A2 students with some base knowledge",
+  "target_level": "A1-A2",
+  "duration": "50-60 minutes",
+  "core_structure": {
+    "pedagogical_approach": "Communicative language teaching with preference-based personal introduction",
+    "key_methodology": "Using known structures for more intentional, connected, and spontaneous speaking"
+  },
+  "lesson_phases": [
+    {
+      "phase": "warm_up",
+      "name": "Personalized Multiple Choice",
+      "duration": "10-12 minutes",
+      "objective": "Activate prior knowledge and introduce target vocabulary naturally",
+      "structure": {
+        "format": "Look at two options and answer, or say 'None, I...' and complete",
+        "question_categories": [
+          "personal_info",
+          "preferences", 
+          "family",
+          "hobbies"
+        ],
+        "sample_questions": [
+          {
+            "category": "personal_info",
+            "question": "What's your full name?",
+            "options": ["Option A", "Option B"],
+            "model_answer": "None. My full name is [student's name]."
+          },
+          {
+            "category": "preferences",
+            "question": "What do you like to do in your free time?",
+            "options": ["Basketball", "Painting"],
+            "model_answer": "None. I like [activity] and [activity]."
+          }
+        ]
+      }
+    },
+    {
+      "phase": "vocabulary_presentation",
+      "name": "Target Vocabulary Introduction",
+      "duration": "8-10 minutes",
+      "objective": "Present and practice theme-specific vocabulary in categories",
+      "structure": {
+        "categories": [
+          {
+            "type": "verbs_with_ing",
+            "items": ["dancing", "watching movies", "playing guitar", "cooking", "swimming", "reading", "running", "traveling"],
+            "presentation": "Visual with emojis"
+          },
+          {
+            "type": "opinion_adjectives", 
+            "items": ["fun", "boring", "healthy", "delicious", "relaxing", "exciting", "challenging", "adventurous"],
+            "presentation": "Emoji associations"
+          },
+          {
+            "type": "connectors",
+            "items": ["because", "and", "but"],
+            "presentation": "Function explanation"
+          }
+        ]
+      }
+    },
+    {
+      "phase": "vocabulary_practice",
+      "name": "Vocabulary Matching Activity",
+      "duration": "8-10 minutes", 
+      "objective": "Practice vocabulary through opinion-based matching",
+      "structure": {
+        "activity_type": "matching_with_personalization",
+        "instructions": "Match activities with adjectives that represent YOUR opinion",
+        "target_structure": "In my opinion, [activity] is [adjective]",
+        "materials": "Visual cards with activities and adjectives"
+      }
+    },
+    {
+      "phase": "grammar_focus",
+      "name": "Grammar Presentation and Practice",
+      "duration": "10-12 minutes",
+      "objective": "Present and practice preference verbs + -ing + connectors",
+      "structure": {
+        "grammar_points": [
+          {
+            "structure": "like/love/hate/enjoy + verb + -ing",
+            "examples": ["I like reading", "She loves dancing", "We hate cooking"]
+          },
+          {
+            "structure": "connectors for reasons and additions",
+            "examples": [
+              "I like swimming because it's relaxing",
+              "I like hiking because it's healthy and adventurous", 
+              "I like reading, but I don't like watching TV"
+            ]
+          }
+        ],
+        "practice_activity": {
+          "type": "guided_completion",
+          "format": "Complete sentences using emojis as clues",
+          "example": "Maria: I like ______ 🥾 because it is ______ 🧘 and ______ 💪"
+        }
+      }
+    },
+    {
+      "phase": "communicative_practice",
+      "name": "Speaking Challenge",
+      "duration": "8-10 minutes",
+      "objective": "Apply structures in meaningful communication",
+      "structure": {
+        "activity_type": "guided_speaking",
+        "prompts": [
+          "Tell me 3 things you enjoy doing and why",
+          "Tell me something you hate and explain why"
+        ],
+        "target_output": "Extended responses using target grammar and vocabulary"
+      }
+    },
+    {
+      "phase": "integrated_activity", 
+      "name": "Role-play: New in a Group",
+      "duration": "12-15 minutes",
+      "objective": "Integrate all lesson elements in realistic context",
+      "structure": {
+        "scenario": "Introduce yourself to a new group (conversation club, yoga class, etc.)",
+        "required_elements": [
+          "Personal information",
+          "Preferences with reasons",
+          "Use of target grammar and vocabulary"
+        ],
+        "model_provided": true,
+        "interaction_type": "group_introductions"
+      }
+    },
+    {
+      "phase": "wrap_up",
+      "name": "Mini Wrap-Up and Consolidation", 
+      "duration": "5-8 minutes",
+      "objective": "Consolidate learning and check understanding",
+      "structure": {
+        "review_questions": [
+          "Which verbs do we use followed by -ing when talking about likes and dislikes?",
+          "How would you describe activities using fun, relaxing, exciting, boring?",
+          "Say something your family member likes and doesn't like"
+        ],
+        "motivational_closing": "Your likes make you unique — and now you can share them in English!"
+      }
+    }
+  ],
+  "extension_activities": [
+    {
+      "name": "Idiomatic Expressions Extension",
+      "content": "Piece of cake / Not my cup of tea",
+      "application": "Use expressions with activities for natural language development"
+    },
+    {
+      "name": "Third Person Practice", 
+      "content": "Introducing Others activity",
+      "application": "Practice describing other people's preferences"
+    }
+  ],
+  "assessment_criteria": [
+    "Correct use of preference verbs + -ing",
+    "Appropriate use of opinion adjectives", 
+    "Effective use of connectors (because, and, but)",
+    "Fluency in expressing personal preferences",
+    "Ability to give reasons for preferences"
+  ],
+  "materials_needed": [
+    "Visual cards with activities (emojis)",
+    "Adjective cards", 
+    "Role-play scenario cards",
+    "Audio/visual equipment for model examples"
+  ],
+  "variation_parameters": {
+    "theme_options": ["hobbies", "food", "work", "travel", "daily_routines", "entertainment"],
+    "level_adaptations": ["A1", "A2", "B1"],
+    "grammar_focus_options": ["present_simple", "preference_verbs", "frequency_adverbs", "future_plans"],
+    "activity_intensity": ["standard", "intensive", "conversation_focused"],
+    "cultural_contexts": ["general", "business", "academic", "social"]
+  },
+  "framework_metadata": {
+    "created_for": "A1-A2 students with base knowledge needing fluency development",
+    "pedagogical_principle": "Use known structures for more intentional communication",
+    "scalability": "High - adaptable to multiple themes and levels",
+    "estimated_prep_time": "20-30 minutes"
+  }
+}
