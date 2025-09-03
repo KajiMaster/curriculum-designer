@@ -59,7 +59,7 @@ data "aws_lambda_layer_version" "webhook_dependencies" {
 
 data "aws_lambda_layer_version" "httpx_dependencies" {
   layer_name = "curriculum-httpx-dependencies"
-  version    = 3
+  version    = 4
 }
 
 data "aws_lambda_layer_version" "mcp_dependencies" {
