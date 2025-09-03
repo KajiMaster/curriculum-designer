@@ -57,6 +57,11 @@ data "aws_lambda_layer_version" "webhook_dependencies" {
   layer_name = "curriculum-designer-webhook-dependencies"
 }
 
+data "aws_lambda_layer_version" "httpx_dependencies" {
+  layer_name = "curriculum-httpx-dependencies"
+  version    = 3
+}
+
 data "aws_lambda_layer_version" "mcp_dependencies" {
   layer_name = "curriculum-designer-mcp-dependencies"
 }
@@ -129,6 +134,21 @@ resource "aws_iam_role_policy" "webhook_lambda_policy" {
       {
         Effect = "Allow"
         Action = [
+          "dynamodb:PutItem",
+          "dynamodb:GetItem",
+          "dynamodb:Query",
+          "dynamodb:Scan",
+          "dynamodb:UpdateItem",
+          "dynamodb:DeleteItem"
+        ]
+        Resource = [
+          "arn:aws:dynamodb:${var.aws_region}:*:table/curriculum-frameworks",
+          "arn:aws:dynamodb:${var.aws_region}:*:table/curriculum-frameworks/index/*"
+        ]
+      },
+      {
+        Effect = "Allow"
+        Action = [
           "dynamodb:GetItem",
           "dynamodb:PutItem",
           "dynamodb:UpdateItem",
@@ -163,16 +183,19 @@ resource "aws_cloudwatch_log_group" "webhook_lambda_logs" {
 resource "aws_lambda_function" "webhook_handler" {
   function_name = "${var.project_name}-webhook-${var.environment}"
   role         = aws_iam_role.webhook_lambda_role.arn
-  handler      = "lambda_main.handler"
+  handler      = "lambda_function.lambda_handler"
   runtime      = "python3.11"
-  timeout      = 30
+  timeout      = 90
 
-  # Use Lambda layer for dependencies
-  layers = [data.aws_lambda_layer_version.webhook_dependencies.arn]
+  # Use Lambda layers for dependencies
+  layers = [
+    data.aws_lambda_layer_version.webhook_dependencies.arn,
+    data.aws_lambda_layer_version.httpx_dependencies.arn
+  ]
 
-  # Initial deployment with current working code (CI/CD will update)
-  filename         = "${path.module}/../../../webhook-handler/lambda_package/placeholder.zip"
-  source_code_hash = filebase64sha256("${path.module}/../../../webhook-handler/lambda_package/placeholder.zip")
+  # Initial deployment pointing to new structure
+  filename         = "${path.module}/../../../lambda-deployments/webhook-handler/deployment.zip"
+  source_code_hash = fileexists("${path.module}/../../../lambda-deployments/webhook-handler/deployment.zip") ? filebase64sha256("${path.module}/../../../lambda-deployments/webhook-handler/deployment.zip") : null
 
   environment {
     variables = {
@@ -328,16 +351,16 @@ resource "aws_cloudwatch_log_group" "mcp_lambda_logs" {
 resource "aws_lambda_function" "mcp_server" {
   function_name = "${var.project_name}-mcp-${var.environment}"
   role         = aws_iam_role.webhook_lambda_role.arn  # Reuse same role
-  handler      = "lambda_handler.lambda_handler"
+  handler      = "lambda_function.lambda_handler"
   runtime      = "python3.11"
   timeout      = 30
 
   # Use MCP Lambda layer for dependencies
   layers = [data.aws_lambda_layer_version.mcp_dependencies.arn]
 
-  # Initial deployment with placeholder (CI/CD will update)
-  filename         = "${path.module}/../../../mcp-server/mcp_deployment.zip"
-  source_code_hash = fileexists("${path.module}/../../../mcp-server/mcp_deployment.zip") ? filebase64sha256("${path.module}/../../../mcp-server/mcp_deployment.zip") : null
+  # Initial deployment pointing to new structure
+  filename         = "${path.module}/../../../lambda-deployments/mcp-server/deployment.zip"
+  source_code_hash = fileexists("${path.module}/../../../lambda-deployments/mcp-server/deployment.zip") ? filebase64sha256("${path.module}/../../../lambda-deployments/mcp-server/deployment.zip") : null
 
   environment {
     variables = {
