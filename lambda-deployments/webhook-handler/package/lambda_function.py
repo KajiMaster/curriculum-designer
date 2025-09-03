@@ -225,28 +225,8 @@ async def handle_comment(action):
         ai_request = comment_text.lower().replace("@ai", "").strip()
         print(f"AI request: {ai_request}")
 
-        # Check for generate lesson command first
-        if "generate lesson" in ai_request and "topic=" in ai_request:
-            print(f"Detected natural lesson command: {ai_request}")
-            # Parse topic and level from natural lesson request
-            import re
-            print(f"Parsing natural lesson request: {ai_request}")
-            topic_match = re.search(r'topic="([^"]+)"', ai_request)
-            level_match = re.search(r'level=([A-Ca-c][12])', ai_request)
-            
-            if not topic_match:
-                await trello.add_comment(card_id, '❌ Missing topic parameter. Use: @ai generate lesson topic="Common illnesses" level=A2')
-                return
-                
-            topic = topic_match.group(1)
-            level = level_match.group(1).upper() if level_match else "B1"
-            
-            print(f"Creating natural lesson for topic: {topic}, level: {level}")
-            await generate_topic_driven_lesson(card_id, topic, level)
-            return
-
-        # Check for framework commands 
-        if any(ai_request.startswith(cmd) for cmd in ["save framework", "generate variants", "list frameworks"]):
+        # Check for framework commands first
+        if any(cmd in ai_request for cmd in ["save framework", "generate variants", "list frameworks"]):
             print(f"Detected framework command: {ai_request}")
             await handle_framework_command(ai_request, card_details, card_id)
             return
@@ -923,6 +903,22 @@ async def handle_framework_command(ai_request: str, card_details: dict, card_id:
                 traceback.print_exc()
                 await trello.add_comment(card_id, f"❌ Error generating variants: {str(e)}")
                 
+        elif "generate lesson" in ai_request:
+            # Parse topic and level from natural lesson request
+            import re
+            print(f"Parsing natural lesson request: {ai_request}")
+            topic_match = re.search(r'topic="([^"]+)"', ai_request)
+            level_match = re.search(r'level=([A-C][12])', ai_request)
+            
+            if not topic_match:
+                await trello.add_comment(card_id, '❌ Missing topic parameter. Use: @ai generate lesson topic="Common illnesses" level=A2')
+                return
+                
+            topic = topic_match.group(1)
+            level = level_match.group(1) if level_match else "B1"
+            
+            print(f"Creating natural lesson for topic: {topic}, level: {level}")
+            await generate_topic_driven_lesson(card_id, topic, level)
                 
     except Exception as e:
         print(f"Error in framework command: {e}")
