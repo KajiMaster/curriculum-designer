@@ -29,7 +29,6 @@ jobs:
     outputs:
       lambda_changed: ${{ steps.changes.outputs.lambda }}
       terraform_changed: ${{ steps.changes.outputs.terraform }}
-      terraform_global_changed: ${{ steps.changes.outputs.terraform_global }}
       terraform_multi_env_changed: ${{ steps.changes.outputs.terraform_multi_env }}
       
     steps:
@@ -46,7 +45,6 @@ jobs:
             echo "🚀 Force deploy enabled - marking all as changed"
             echo "lambda=true" >> $GITHUB_OUTPUT
             echo "terraform=true" >> $GITHUB_OUTPUT
-            echo "terraform_global=true" >> $GITHUB_OUTPUT
             echo "terraform_multi_env=true" >> $GITHUB_OUTPUT
             exit 0
           fi
@@ -73,11 +71,7 @@ jobs:
           fi
           
           # Check specific Terraform environments for targeted applies
-          if echo "$CHANGED_FILES" | grep -qE "^terraform/environments/global/.*\.tf$"; then
-            echo "terraform_global=true" >> $GITHUB_OUTPUT
-          else
-            echo "terraform_global=false" >> $GITHUB_OUTPUT
-          fi
+          # Note: Global terraform deployment removed from CI/CD
           
           if echo "$CHANGED_FILES" | grep -qE "^terraform/environments/multi-env/.*\.tf$"; then
             echo "terraform_multi_env=true" >> $GITHUB_OUTPUT
@@ -144,21 +138,8 @@ jobs:
           name: lambda-deployments
           path: lambda-deployments/
 
-      # Deploy Global Infrastructure (Activity Generator, Layers)
-      - name: Deploy Global Infrastructure
-        if: needs.detect-changes.outputs.terraform_global_changed == 'true' || needs.detect-changes.outputs.lambda_changed == 'true'
-        run: |
-          echo "🏗️ Deploying Global Infrastructure..."
-          cd terraform/environments/global
-          terraform init
-          
-          if [[ "${{ needs.detect-changes.outputs.terraform_global_changed }}" == "true" ]]; then
-            # Apply all changes if terraform files changed
-            terraform apply -auto-approve
-          elif [[ "${{ needs.detect-changes.outputs.lambda_changed }}" == "true" ]]; then
-            # Update Lambda functions if any Lambda changed
-            terraform apply -target=aws_lambda_function.activity_generator -auto-approve
-          fi
+      # Note: Global infrastructure deployment removed from CI/CD
+      # Deploy manually when needed for global resources like activity generator
 
       # Deploy Multi-Environment Infrastructure (Webhook, MCP)
       - name: Deploy Multi-Environment Infrastructure  
