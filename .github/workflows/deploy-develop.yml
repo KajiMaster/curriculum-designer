@@ -151,10 +151,10 @@ jobs:
           
           if [[ "${{ needs.detect-changes.outputs.terraform_multi_env_changed }}" == "true" ]]; then
             # Apply all changes if terraform files changed
-            terraform apply -auto-approve
+            terraform apply -var-file="dev.tfvars" -auto-approve
           elif [[ "${{ needs.detect-changes.outputs.lambda_changed }}" == "true" ]]; then
             # Update Lambda functions if any Lambda changed
-            terraform apply -target=aws_lambda_function.webhook_handler_dev -target=aws_lambda_function.mcp_server_dev -auto-approve
+            terraform apply -var-file="dev.tfvars" -target=aws_lambda_function.webhook_handler -target=aws_lambda_function.mcp_server -auto-approve
           fi
 
       # Legacy Lambda updates (for functions not yet managed by Terraform)
