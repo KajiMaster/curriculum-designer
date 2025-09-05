@@ -209,6 +209,16 @@ resource "aws_iam_role_policy" "github_actions_lambda_deploy" {
         Resource = [
           "arn:aws:iam::*:role/curriculum-activity-generator-role*"
         ]
+      },
+      {
+        Effect = "Allow"
+        Action = [
+          "ssm:GetParameter",
+          "ssm:GetParameters"
+        ]
+        Resource = [
+          "arn:aws:ssm:us-east-1:*:parameter/global/curriculum-designer/*"
+        ]
       }
     ]
   })
