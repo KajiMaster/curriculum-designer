@@ -1,6 +1,6 @@
 """
 Simple Lambda handler for Trello AI Webhook
-Responds to Trello events with AI assistance.
+Responds to Trello events with AI assistance and activity generation.
 """
 
 import json
