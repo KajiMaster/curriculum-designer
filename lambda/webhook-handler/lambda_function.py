@@ -124,7 +124,7 @@ class AIAssistant:
             "messages": [
                 {
                     "role": "system",
-                    "content": "You are an English teaching assistant. Help teachers with curriculum planning, activity suggestions, and lesson organization. Be practical and concise."
+                    "content": "You are a tier_3 English teaching assistant. Help teachers with high-quality curriculum planning, innovative activity suggestions, and effective lesson organization. Always aim for tier_3 quality - engaging, pedagogically sound, and immediately usable by teachers. Be practical, detailed, and excellence-focused."
                 },
                 {"role": "user", "content": prompt}
             ],
@@ -212,6 +212,12 @@ async def handle_comment(action):
         ai_request = comment_text.lower().replace("@ai", "").strip()
         print(f"AI request: {ai_request}")
 
+        # Check for activity ranking command first
+        if "activity_ranking" in ai_request:
+            print(f"Detected activity ranking command: {ai_request}")
+            await handle_activity_ranking_command(ai_request, card_details, card_id)
+            return
+            
         # Check for activity command
         if "activity" in ai_request and not "framework" in ai_request:
             print(f"Detected activity command: {ai_request}")
@@ -619,6 +625,67 @@ Make it practical, engaging, and immediately usable by teachers. Include emojis 
         await trello.add_comment(card_id, f"❌ Error generating variants: {str(e)}")
 
 
+async def handle_activity_ranking_command(ai_request: str, card_details: dict, card_id: str):
+    """Handle activity ranking/feedback commands"""
+    import re
+    
+    print(f"Processing activity ranking command: {ai_request}")
+    
+    try:
+        # Parse activity ID and tier from request
+        # Format: @ai activity_ranking #1234 tier_2
+        # or: @ai activity_ranking act_20231201_5678 tier_3
+        
+        id_match = re.search(r'#(\w+)|activity_ranking\s+(act_\w+)', ai_request)
+        tier_match = re.search(r'tier_([123])', ai_request)
+        
+        if not id_match or not tier_match:
+            await trello.add_comment(card_id, 
+                "❌ **Invalid ranking format**\n\n" +
+                "**Usage:** `@ai activity_ranking #activity_id tier_X`\n\n" +
+                "**Examples:**\n" +
+                "• `@ai activity_ranking #1234 tier_3` (highest quality)\n" +
+                "• `@ai activity_ranking #5678 tier_2` (good quality)\n" +
+                "• `@ai activity_ranking #9012 tier_1` (basic quality)\n\n" +
+                "**Tiers:** tier_3 (best) → tier_2 (good) → tier_1 (basic)")
+            return
+            
+        activity_id = id_match.group(1) or id_match.group(2)
+        quality_tier = f"tier_{tier_match.group(1)}"
+        
+        await trello.add_comment(card_id, f"🔍 **Recording Quality Rating**\n\n📌 Activity ID: `{activity_id}`\n🏆 Quality Tier: `{quality_tier}`\n\n⏳ Updating database...")
+        
+        # Update activity rating in DynamoDB
+        dynamodb = boto3.resource('dynamodb')
+        table = dynamodb.Table('curriculum-activities')
+        
+        # Update the activity with quality tier and feedback
+        response = table.update_item(
+            Key={'activity_id': activity_id},
+            UpdateExpression='SET quality_tier = :tier, quality_status = :status, teacher_feedback = :feedback, updated_at = :timestamp',
+            ExpressionAttributeValues={
+                ':tier': quality_tier,
+                ':status': 'teacher_evaluated',
+                ':feedback': f'Teacher ranking from Trello card {card_id}',
+                ':timestamp': datetime.now().isoformat()
+            },
+            ReturnValues='ALL_NEW'
+        )
+        
+        await trello.add_comment(card_id, 
+            f"✅ **Quality Rating Recorded Successfully!**\n\n" +
+            f"📌 Activity ID: `{activity_id}`\n" +
+            f"🏆 Quality Tier: `{quality_tier}` {'(Highest Quality!)' if quality_tier == 'tier_3' else '(Good Quality)' if quality_tier == 'tier_2' else '(Basic Quality)'}\n" +
+            f"📊 Status: Teacher Evaluated\n\n" +
+            f"This rating will improve future activity generation!")
+            
+    except Exception as e:
+        print(f"Error in activity ranking: {e}")
+        import traceback
+        traceback.print_exc()
+        await trello.add_comment(card_id, f"❌ **Error recording ranking:** {str(e)}")
+
+
 async def handle_activity_command(ai_request: str, card_details: dict, card_id: str):
     """Handle activity generation commands"""
     import re
@@ -626,14 +693,14 @@ async def handle_activity_command(ai_request: str, card_details: dict, card_id: 
     print(f"Processing activity command: {ai_request}")
     
     try:
-        # Parse parameters from request
-        # Format: @ai activity [topic] [grade_level] [duration] [activity_type]
-        # Example: @ai activity "food and drinks" 3 15 preference_choice
+        # Parse parameters from request - now focusing on tier_3 quality activities
+        # Format: @ai activity [topic] [student_age] [duration] [activity_type]
+        # Example: @ai activity "food and drinks" elementary 15 preference_choice
         
         # Extract parameters using regex
         # Look for quoted strings first (for multi-word topics)
         topic_match = re.search(r'"([^"]+)"', ai_request) or re.search(r'topic[:\s]+([^\s,]+)', ai_request)
-        grade_match = re.search(r'grade[:\s]+([^\s,]+)', ai_request) or re.search(r'\b([K1-9]|1[0-2])\b', ai_request)
+        age_match = re.search(r'age[:\s]+([^\s,]+)', ai_request) or re.search(r'\b(young|elementary|k-3|kindergarten|primary|middle|secondary|high|adult)\b', ai_request, re.IGNORECASE)
         duration_match = re.search(r'duration[:\s]+(\d+)', ai_request) or re.search(r'(\d+)\s*min', ai_request)
         type_match = re.search(r'type[:\s]+([^\s,]+)', ai_request) or re.search(r'(preference_choice|vocabulary_builder|compare_contrast|sequence_builder|story_response|interactive_game|discovery_exploration)', ai_request)
         
@@ -643,25 +710,26 @@ async def handle_activity_command(ai_request: str, card_details: dict, card_id: 
         else:
             topic = topic_match.group(1)
         
-        # Default values
-        grade_level = grade_match.group(1) if grade_match else "3"
+        # Default values - always aiming for tier_3 quality
+        student_age = age_match.group(1).lower() if age_match else None
         duration = int(duration_match.group(1)) if duration_match else 15
         activity_type = type_match.group(1) if type_match else None
         
         # Get context from card description
         context = card_details.get('desc', '')[:500] if card_details.get('desc') else None
         
-        await trello.add_comment(card_id, f"🎯 **Generating Activity**\n\n📚 Topic: {topic}\n📊 Grade Level: {grade_level}\n⏱️ Duration: {duration} minutes\n🎨 Type: {activity_type or 'Auto-selected'}")
+        await trello.add_comment(card_id, f"🎯 **Generating Tier 3 Activity**\n\n📚 Topic: {topic}\n👥 Student Age: {student_age or 'General'}\n⏱️ Duration: {duration} minutes\n🎨 Type: {activity_type or 'Auto-selected'}\n\n💎 Quality Focus: Tier 3 (Highest Quality)")
         
         # Call activity generator Lambda
         lambda_client = boto3.client('lambda', region_name='us-east-1')
         
         payload = {
             'topic': topic,
-            'grade_level': grade_level,
             'duration': duration
         }
         
+        if student_age:
+            payload['student_age'] = student_age
         if activity_type:
             payload['activity_type'] = activity_type
         if context:
@@ -684,12 +752,12 @@ async def handle_activity_command(ai_request: str, card_details: dict, card_id: 
             activity = json.loads(result.get('body', '{}'))
             
             # Format activity for Trello comment
-            comment = f"✅ **Activity Generated Successfully!**\n\n"
+            activity_id = activity.get('activity_id', 'Unknown')
+            comment = f"✅ **Tier 3 Activity Generated Successfully!**\n\n"
             comment += f"**{activity.get('title', 'Activity')}**\n\n"
+            comment += f"📌 **Activity ID:** `{activity_id}` (for ranking)\n"
+            comment += f"🏆 **Quality Status:** {activity.get('metadata', {}).get('quality_status', 'Tier 3 Ready')}\n\n"
             
-            # Add activity ID for tracking
-            if activity.get('activity_id'):
-                comment += f"📌 Activity ID: `{activity['activity_id']}`\n\n"
             
             # Format slides for display
             slides = activity.get('slides', [])
@@ -722,13 +790,17 @@ async def handle_activity_command(ai_request: str, card_details: dict, card_id: 
                     comment += f"⏱️ *Timing:* {slide['timing']}\n"
                 comment += "\n---\n\n"
             
-            # Add metadata
+            # Add metadata and ranking instructions
             metadata = activity.get('metadata', {})
             if metadata:
                 comment += f"**Activity Details:**\n"
                 comment += f"• Energy Level: {metadata.get('energy_level', 'medium')}\n"
                 comment += f"• Cognitive Stage: {metadata.get('cognitive_stage', 'practice')}\n"
-                comment += f"• Duration: {metadata.get('duration', '15 minutes')}\n"
+                comment += f"• Duration: {metadata.get('duration', '15 minutes')}\n\n"
+                comment += f"📊 **Rate this activity:**\n"
+                comment += f"`@ai activity_ranking #{activity_id} tier_3` (highest quality)\n"
+                comment += f"`@ai activity_ranking #{activity_id} tier_2` (good quality)\n"
+                comment += f"`@ai activity_ranking #{activity_id} tier_1` (basic quality)"
             
             # Truncate if too long for Trello
             if len(comment) > 16000:
@@ -765,7 +837,7 @@ async def handle_activity_command(ai_request: str, card_details: dict, card_id: 
         print(f"Error in activity generation: {e}")
         import traceback
         traceback.print_exc()
-        await trello.add_comment(card_id, f"❌ **Error generating activity:** {str(e)}\n\nPlease check your parameters and try again.\n\n**Usage:** `@ai activity \"topic\" grade_level duration [type]`\n\n**Example:** `@ai activity \"food and drinks\" 3 15 preference_choice`")
+        await trello.add_comment(card_id, f"❌ **Error generating activity:** {str(e)}\n\nPlease check your parameters and try again.\n\n**Usage:** `@ai activity \"topic\" [student_age] [duration] [type]`\n\n**Examples:**\n• `@ai activity \"food and drinks\" adult 15 preference_choice`\n• `@ai activity \"technology\" adult 20`\n• `@ai activity \"travel\" adult 10 vocabulary_builder`\n\n**Note:** All activities are generated at tier_3 quality (highest level) for teachers.")
 
 
 async def handle_framework_command(ai_request: str, card_details: dict, card_id: str):

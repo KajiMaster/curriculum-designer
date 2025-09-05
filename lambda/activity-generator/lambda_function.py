@@ -23,37 +23,41 @@ class ActivityGenerator:
             "discovery_exploration": self.generate_discovery_exploration
         }
     
-    async def generate_activity(self, topic: str, grade_level: str, duration: int, 
+    async def generate_activity(self, topic: str, duration: int, 
                                activity_type: Optional[str] = None,
-                               context: Optional[str] = None) -> Dict:
-        """Generate a complete, student-ready activity."""
+                               context: Optional[str] = None,
+                               student_age: Optional[str] = None) -> Dict:
+        """Generate a complete, tier_3 quality student-ready activity."""
         
         # Select activity type based on parameters or choose intelligently
         if not activity_type:
-            activity_type = self.select_activity_type(topic, grade_level, duration)
+            activity_type = self.select_activity_type(topic, duration)
         
-        # Generate activity using selected template
+        # Generate activity using selected template - ALWAYS aiming for tier_3 quality
         if activity_type in self.templates:
-            activity = await self.templates[activity_type](topic, grade_level, duration, context)
+            activity = await self.templates[activity_type](topic, duration, context, student_age)
         else:
-            activity = await self.generate_custom_activity(topic, grade_level, duration, activity_type, context)
+            activity = await self.generate_custom_activity(topic, duration, activity_type, context, student_age)
         
-        # Add metadata
+        # Add metadata with quality tracking
         activity['metadata'] = {
             'generated_at': datetime.now().isoformat(),
             'topic': topic,
-            'grade_level': grade_level,
             'duration': f"{duration} minutes",
             'activity_type': activity_type,
+            'student_age': student_age or 'unspecified',
             'energy_level': self.determine_energy_level(activity_type),
-            'cognitive_stage': self.determine_cognitive_stage(activity_type)
+            'cognitive_stage': self.determine_cognitive_stage(activity_type),
+            'quality_status': 'pending_evaluation',  # Will be evaluated by humans
+            'quality_tier': None,  # To be assigned by evaluation system (tier_3=best, tier_2=good, tier_1=basic)
+            'feedback': None  # To be filled by evaluation system
         }
         
         return activity
     
-    def select_activity_type(self, topic: str, grade_level: str, duration: int) -> str:
-        """Intelligently select activity type based on parameters."""
-        # Simple logic for now, can be enhanced with ML later
+    def select_activity_type(self, topic: str, duration: int) -> str:
+        """Intelligently select activity type based on duration and topic."""
+        # Duration-based selection for optimal learning outcomes
         if duration <= 10:
             options = ["vocabulary_builder", "preference_choice", "interactive_game"]
         elif duration <= 20:
@@ -61,12 +65,14 @@ class ActivityGenerator:
         else:
             options = ["discovery_exploration", "project_based"]
         
-        # For younger grades, prefer more visual and interactive
-        if grade_level in ["K", "1", "2", "3"]:
-            if "preference_choice" not in options:
-                options.append("preference_choice")
-            if "interactive_game" not in options:
-                options.append("interactive_game")
+        # Topic-based enhancements (same curriculum approach for all ages)
+        if any(keyword in topic.lower() for keyword in ["vocabulary", "words", "language"]):
+            if "vocabulary_builder" not in options:
+                options.append("vocabulary_builder")
+        
+        if any(keyword in topic.lower() for keyword in ["story", "narrative", "reading"]):
+            if "story_response" not in options:
+                options.append("story_response")
         
         return random.choice(options)
     
@@ -95,229 +101,271 @@ class ActivityGenerator:
             return "apply"
         return "practice"
     
-    async def generate_preference_choice(self, topic: str, grade_level: str, 
-                                        duration: int, context: Optional[str]) -> Dict:
-        """Generate a preference choice activity like the example."""
+    async def generate_preference_choice(self, topic: str, duration: int, 
+                                        context: Optional[str], student_age: Optional[str]) -> Dict:
+        """Generate a tier_3 preference choice activity like the example."""
+        
+        age_note = f" (content adapted for {student_age} learners)" if student_age else ""
         
         prompt = f"""
-        Create a complete, student-ready preference choice activity for {grade_level} grade students.
-        Topic: {topic}
+        Create a single, focused preference choice ACTIVITY{age_note} about {topic}.
         Duration: {duration} minutes
-        Context: {context or 'General classroom setting'}
+        Context: {context or 'Online 1-on-1 teaching'}
         
-        Generate exactly 2 slides of content following this structure:
+        CRITICAL: Create ONE focused activity component, not a full lesson. Follow this EXACT structure:
         
-        SLIDE 1 - Vocabulary Introduction:
-        - Title: "All About Me: My Favorite [topic aspect]..."
-        - Include 6-9 vocabulary items related to {topic}
-        - Each item needs a clear, simple label
-        - Items should be common and age-appropriate
+        ACTIVITY STRUCTURE:
+        1. Title: "All About Me: My Favorite [aspect of {topic}]"
+        2. Vocabulary Section: 9 items related to {topic} in a 3x3 grid
+        3. Practice Section: 5 "this or that" preference questions using the vocabulary
         
-        SLIDE 2 - Preference Practice:
-        - Same title as Slide 1
-        - Create 5 "this or that" questions using the vocabulary
-        - Include clear instructions: "Look at the two choices and say each one out loud. Then say which one you prefer."
-        - Provide example: "For example: [Item1] or [Item2]? I prefer [Item1]."
-        - Each question should have a response line for student answers
+        VOCABULARY SECTION:
+        - Display exactly 9 vocabulary items in a visual grid
+        - Each item should have: emoji/icon + word label
+        - Items must be directly related to {topic}
+        - Keep labels simple and clear
         
-        Output as JSON with this structure:
+        PRACTICE SECTION:
+        - Instructions: "Look at the two choices and say each one out loud. Then say which one you prefer."
+        - Example: "For example: [Item1] or [Item2]? I prefer [Item1]."
+        - Create exactly 5 preference questions using emojis from the vocabulary
+        - Format: "🎯 or 🎯? _________________________."
+        - Each question uses different vocabulary items
+        
+        Output as JSON with this EXACT structure:
         {{
-            "title": "Activity title",
-            "slides": [
-                {{
-                    "slide_number": 1,
-                    "type": "vocabulary_introduction",
-                    "title": "Slide title",
-                    "content": {{
-                        "instructions": "Teacher instructions",
-                        "vocabulary_items": ["item1", "item2", ...],
-                        "activity": "What students see/do"
-                    }},
-                    "teacher_notes": "Private notes for teacher",
-                    "timing": "X minutes"
-                }},
-                {{
-                    "slide_number": 2,
-                    "type": "guided_practice",
-                    "title": "Slide title",
-                    "content": {{
-                        "instructions": "Student instructions with example",
-                        "questions": [
-                            "Question 1: [choice1] or [choice2]? _______",
-                            ...
-                        ]
-                    }},
-                    "teacher_notes": "Private notes",
-                    "timing": "X minutes"
-                }}
-            ]
+            "activity_type": "preference_choice",
+            "title": "All About Me: My Favorite [topic aspect]",
+            "vocabulary_section": {{
+                "items": [
+                    {{"emoji": "🎯", "word": "word1"}},
+                    {{"emoji": "🎯", "word": "word2"}},
+                    ... (exactly 9 items)
+                ]
+            }},
+            "practice_section": {{
+                "instructions": "Look at the two choices and say each one out loud. Then say which one you prefer.",
+                "example": "For example: (Word1) 🎯 or (Word2) 🎯? I prefer Word1.",
+                "questions": [
+                    "🎯 or 🎯? _________________________.",
+                    ... (exactly 5 questions)
+                ]
+            }},
+            "teacher_notes": "Simple activity for preference practice using {topic} vocabulary",
+            "estimated_time": "{duration} minutes"
         }}
         
-        Make all content student-facing and age-appropriate for {grade_level} grade.
+        This is a SINGLE activity component, not a lesson. Keep it simple, focused, and reusable.
         """
         
         response = await self.call_claude(prompt)
         return json.loads(response)
     
-    async def generate_vocabulary_builder(self, topic: str, grade_level: str,
-                                         duration: int, context: Optional[str]) -> Dict:
-        """Generate a vocabulary building activity."""
+    async def generate_vocabulary_builder(self, topic: str, duration: int,
+                                         context: Optional[str], student_age: Optional[str]) -> Dict:
+        """Generate a tier_3 vocabulary building activity."""
+        
+        age_note = f" (content adapted for {student_age} learners)" if student_age else ""
         
         prompt = f"""
-        Create a complete, student-ready vocabulary building activity for {grade_level} grade students.
+        Create a complete, tier_3 quality vocabulary building activity{age_note}.
         Topic: {topic}
         Duration: {duration} minutes
+        Context: {context or 'Online 1-on-1 teaching'}
         
-        Generate 2-3 slides that teach and practice vocabulary:
+        CRITICAL: This must be tier_3 quality - systematic, scaffolded, and highly engaging.
         
-        SLIDE 1 - Introduction:
-        - Present 6-8 key vocabulary words with visual descriptions
-        - Include pronunciation guides for difficult words
-        - Use simple, clear definitions
+        Generate 2-3 slides that systematically teach and practice vocabulary:
         
-        SLIDE 2 - Practice:
+        SLIDE 1 - Vocabulary Introduction:
+        - Present 6-8 key vocabulary words with clear visual support
+        - Include pronunciation guides for challenging words
+        - Use simple, memorable definitions with examples
+        - Interactive elements to maintain engagement
+        
+        SLIDE 2 - Guided Practice:
         - Create interactive practice using the vocabulary
-        - Could include: matching, fill-in-the-blank, or categorization
-        - Provide clear examples
+        - Include: matching, categorization, or context clues
+        - Provide clear examples and scaffolding
+        - Multiple practice opportunities
         
-        SLIDE 3 (if duration > 10 min) - Production:
-        - Students use vocabulary in sentences or short responses
-        - Provide sentence frames for support
+        SLIDE 3 (if duration > 10 min) - Application:
+        - Students use vocabulary in meaningful contexts
+        - Provide sentence frames and word banks for support
+        - Personal connection opportunities
         
-        Output as structured JSON with full student-facing content.
-        All instructions should be written FOR the student, not about them.
+        Output as structured JSON with engaging, student-facing content.
+        All instructions should be written FOR the student with tier_3 clarity.
         """
         
         response = await self.call_claude(prompt)
         return json.loads(response)
     
-    async def generate_compare_contrast(self, topic: str, grade_level: str,
-                                       duration: int, context: Optional[str]) -> Dict:
-        """Generate a compare and contrast activity."""
+    async def generate_compare_contrast(self, topic: str, duration: int,
+                                       context: Optional[str], student_age: Optional[str]) -> Dict:
+        """Generate a tier_3 compare and contrast activity."""
+        
+        age_note = f" (content adapted for {student_age} learners)" if student_age else ""
         
         prompt = f"""
-        Create a complete compare and contrast activity for {grade_level} grade students.
+        Create a complete, tier_3 quality compare and contrast activity{age_note}.
         Topic: {topic}
         Duration: {duration} minutes
+        Context: {context or 'Online 1-on-1 teaching'}
         
-        Structure:
-        - Slide 1: Introduction to two things being compared
-        - Slide 2: Finding similarities (with guided prompts)
-        - Slide 3: Finding differences (with guided prompts)
-        - Include sentence frames appropriate for grade level
+        CRITICAL: This must be tier_3 quality - clear structure, engaging visuals, systematic thinking.
         
-        Make it visual and interactive. Output as structured JSON.
+        Structure for excellence:
+        - Slide 1: Visual introduction to two compelling things being compared
+        - Slide 2: Finding similarities with guided discovery prompts
+        - Slide 3: Finding differences with structured thinking support
+        - Include appropriate sentence frames and thinking tools
+        - Visual organizers and interactive elements
+        
+        Make it highly visual, interactive, and cognitively engaging.
+        Output as structured JSON with tier_3 pedagogical design.
         """
         
         response = await self.call_claude(prompt)
         return json.loads(response)
     
-    async def generate_sequence_builder(self, topic: str, grade_level: str,
-                                       duration: int, context: Optional[str]) -> Dict:
-        """Generate a sequencing activity."""
+    async def generate_sequence_builder(self, topic: str, duration: int,
+                                       context: Optional[str], student_age: Optional[str]) -> Dict:
+        """Generate a tier_3 sequencing activity."""
+        
+        age_note = f" (content adapted for {student_age} learners)" if student_age else ""
         
         prompt = f"""
-        Create a step-by-step sequencing activity for {grade_level} grade students.
+        Create a tier_3 quality step-by-step sequencing activity{age_note}.
         Topic: {topic}
         Duration: {duration} minutes
+        Context: {context or 'Online 1-on-1 teaching'}
         
-        Include:
-        - Clear steps to arrange in order
-        - Transition words (first, next, then, finally)
-        - Visual support for each step
-        - Practice putting things in correct sequence
+        CRITICAL: This must be tier_3 quality - logical progression, clear scaffolding, engaging practice.
         
-        Output as structured JSON with complete content.
+        Include for excellence:
+        - Clear, logical steps to arrange in meaningful order
+        - Strategic use of transition words (first, next, then, finally)
+        - Strong visual support for each step
+        - Multiple opportunities to practice sequencing
+        - Interactive elements and student engagement strategies
+        - Real-world connections
+        
+        Output as structured JSON with tier_3 instructional design.
         """
         
         response = await self.call_claude(prompt)
         return json.loads(response)
     
-    async def generate_story_response(self, topic: str, grade_level: str,
-                                     duration: int, context: Optional[str]) -> Dict:
-        """Generate a story response activity."""
+    async def generate_story_response(self, topic: str, duration: int,
+                                     context: Optional[str], student_age: Optional[str]) -> Dict:
+        """Generate a tier_3 story response activity."""
+        
+        age_note = f" (content adapted for {student_age} learners)" if student_age else ""
         
         prompt = f"""
-        Create a story-based response activity for {grade_level} grade students.
+        Create a tier_3 quality story-based response activity{age_note}.
         Topic: {topic}
         Duration: {duration} minutes
+        Context: {context or 'Online 1-on-1 teaching'}
         
-        Structure:
-        - Slide 1: Story prompt or scenario (visual + text)
-        - Slide 2: Comprehension questions with support
-        - Slide 3: Personal connection/response activity
+        CRITICAL: This must be tier_3 quality - compelling story, thoughtful questions, meaningful connections.
         
-        Include sentence starters and word banks for support.
-        Output as structured JSON.
+        Structure for excellence:
+        - Slide 1: Engaging story prompt or scenario (rich visuals + compelling text)
+        - Slide 2: Thoughtful comprehension questions with strategic scaffolding
+        - Slide 3: Personal connection and critical thinking activities
+        
+        Include sophisticated sentence starters, word banks, and thinking prompts.
+        Ensure high engagement and deep learning opportunities.
+        Output as structured JSON with tier_3 narrative design.
         """
         
         response = await self.call_claude(prompt)
         return json.loads(response)
     
-    async def generate_interactive_game(self, topic: str, grade_level: str,
-                                       duration: int, context: Optional[str]) -> Dict:
-        """Generate an interactive game activity."""
+    async def generate_interactive_game(self, topic: str, duration: int,
+                                       context: Optional[str], student_age: Optional[str]) -> Dict:
+        """Generate a tier_3 interactive game activity."""
+        
+        age_note = f" (content adapted for {student_age} players)" if student_age else ""
         
         prompt = f"""
-        Create an interactive, game-based learning activity for {grade_level} grade students.
+        Create a tier_3 quality interactive, game-based learning activity{age_note}.
         Topic: {topic}
         Duration: {duration} minutes
+        Context: {context or 'Online 1-on-1 teaching'}
         
-        The game should:
-        - Have clear, simple rules
-        - Practice the topic content
-        - Be playable in 1-on-1 online setting
-        - Include multiple rounds or turns
-        - Have a fun, engaging format
+        CRITICAL: This must be tier_3 quality - crystal clear rules, high engagement, solid learning.
         
-        Examples: Memory game, Would You Rather, 20 Questions, Simon Says with topic vocabulary
+        The game should achieve excellence through:
+        - Crystal clear, simple rules that promote success
+        - Meaningful practice of topic content
+        - Perfect adaptation for 1-on-1 online setting
+        - Multiple engaging rounds with progression
+        - Fun format that maintains educational focus
+        - Built-in assessment opportunities
         
-        Output as structured JSON with complete game content and rules.
+        Examples: Advanced memory games, strategic Would You Rather, investigative 20 Questions, 
+        topic-based Simon Says, or custom game formats.
+        
+        Output as structured JSON with complete tier_3 game design and implementation.
         """
         
         response = await self.call_claude(prompt)
         return json.loads(response)
     
-    async def generate_discovery_exploration(self, topic: str, grade_level: str,
-                                            duration: int, context: Optional[str]) -> Dict:
-        """Generate a discovery/exploration activity."""
+    async def generate_discovery_exploration(self, topic: str, duration: int,
+                                            context: Optional[str], student_age: Optional[str]) -> Dict:
+        """Generate a tier_3 discovery/exploration activity."""
+        
+        age_note = f" (content adapted for {student_age} explorers)" if student_age else ""
         
         prompt = f"""
-        Create a discovery and exploration activity for {grade_level} grade students.
+        Create a tier_3 quality discovery and exploration activity{age_note}.
         Topic: {topic}
         Duration: {duration} minutes
+        Context: {context or 'Online 1-on-1 teaching'}
         
-        Structure:
-        - Slide 1: Introduction with a mystery or question to explore
-        - Slide 2-3: Guided exploration with clues or information
-        - Slide 4: Discovery synthesis and sharing findings
+        CRITICAL: This must be tier_3 quality - compelling mystery, scaffolded inquiry, meaningful discovery.
         
-        Make it inquiry-based and student-driven.
-        Output as structured JSON.
+        Structure for excellent inquiry learning:
+        - Slide 1: Captivating introduction with intriguing mystery or essential question
+        - Slide 2-3: Strategic guided exploration with carefully sequenced clues and information
+        - Slide 4: Synthesis and celebration of discoveries with extension opportunities
+        
+        Make it genuinely inquiry-based, student-driven, and intellectually stimulating.
+        Include think-alouds, hypothesis formation, and evidence evaluation.
+        Output as structured JSON with tier_3 inquiry design.
         """
         
         response = await self.call_claude(prompt)
         return json.loads(response)
     
-    async def generate_custom_activity(self, topic: str, grade_level: str,
-                                      duration: int, activity_type: str,
-                                      context: Optional[str]) -> Dict:
-        """Generate a custom activity based on specific type request."""
+    async def generate_custom_activity(self, topic: str, duration: int,
+                                      activity_type: str, context: Optional[str],
+                                      student_age: Optional[str]) -> Dict:
+        """Generate a tier_3 custom activity based on specific type request."""
+        
+        age_note = f" (content adapted for {student_age} learners)" if student_age else ""
         
         prompt = f"""
-        Create a complete, student-ready {activity_type} activity for {grade_level} grade students.
+        Create a complete, tier_3 quality {activity_type} activity{age_note}.
         Topic: {topic}
         Duration: {duration} minutes
-        Context: {context or 'General classroom setting'}
+        Context: {context or 'Online 1-on-1 teaching'}
         
-        Generate appropriate number of slides (typically 2-4) with:
-        - Clear student-facing instructions
-        - Engaging content appropriate for age level
-        - Interactive elements
-        - Support materials (word banks, sentence frames, examples)
+        CRITICAL: This must be tier_3 quality - exceptional design, clear execution, high engagement.
         
-        Output as structured JSON with full content for each slide.
-        Remember: This is for 1-on-1 online teaching.
+        Generate appropriate number of slides (typically 2-4) with tier_3 features:
+        - Crystal clear student-facing instructions
+        - Highly engaging content with developmental appropriateness
+        - Interactive elements that promote active learning
+        - Comprehensive support materials (word banks, sentence frames, examples)
+        - Strategic scaffolding and differentiation opportunities
+        
+        Output as structured JSON with complete tier_3 content for each slide.
+        Optimize for excellence in 1-on-1 online teaching environment.
         """
         
         response = await self.call_claude(prompt)
@@ -351,7 +399,7 @@ class ActivityGenerator:
                 raise Exception(f"API call failed: {response.text}")
 
 async def save_activity(activity: Dict) -> str:
-    """Save activity to DynamoDB for reuse."""
+    """Save activity to DynamoDB for reuse and quality tracking."""
     activity_id = f"act_{datetime.now().strftime('%Y%m%d%H%M%S')}_{random.randint(1000, 9999)}"
     
     item = {
@@ -359,11 +407,14 @@ async def save_activity(activity: Dict) -> str:
         'created_at': datetime.now().isoformat(),
         'activity_data': activity,
         'usage_count': 0,
-        'rating': None,
+        'quality_rating': None,  # For human quality evaluation
+        'teacher_feedback': None,  # For teacher feedback collection
         'topic': activity['metadata']['topic'],
-        'grade_level': activity['metadata']['grade_level'],
+        'student_age': activity['metadata']['student_age'],
         'activity_type': activity['metadata']['activity_type'],
-        'duration': activity['metadata']['duration']
+        'duration': activity['metadata']['duration'],
+        'quality_status': activity['metadata']['quality_status'],
+        'quality_tier': activity['metadata']['quality_tier']
     }
     
     table.put_item(Item=item)
@@ -380,15 +431,15 @@ async def async_handler(event, context):
     body = json.loads(event.get('body', '{}'))
     
     topic = body.get('topic')
-    grade_level = body.get('grade_level')
     duration = body.get('duration', 15)  # Default 15 minutes
     activity_type = body.get('activity_type')
     context_info = body.get('context')
+    student_age = body.get('student_age')  # Optional for age-appropriate content
     
-    if not topic or not grade_level:
+    if not topic:
         return {
             'statusCode': 400,
-            'body': json.dumps({'error': 'Missing required parameters: topic and grade_level'})
+            'body': json.dumps({'error': 'Missing required parameter: topic'})
         }
     
     try:
@@ -396,10 +447,10 @@ async def async_handler(event, context):
         generator = ActivityGenerator()
         activity = await generator.generate_activity(
             topic=topic,
-            grade_level=grade_level,
             duration=duration,
             activity_type=activity_type,
-            context=context_info
+            context=context_info,
+            student_age=student_age
         )
         
         # Save to database
@@ -423,7 +474,7 @@ if __name__ == "__main__":
     test_event = {
         'body': json.dumps({
             'topic': 'Food and Drinks',
-            'grade_level': '3',
+            'student_age': 'adult',
             'duration': 15,
             'activity_type': 'preference_choice'
         })
