@@ -48,6 +48,16 @@ jobs:
       - name: Detect changes
         id: changes
         run: |
+          # Force deploy override
+          if [[ "${{ github.event.inputs.force_deploy }}" == "true" ]]; then
+            echo "🚀 Force deploy enabled - marking all as changed"
+            echo "lambda=true" >> $GITHUB_OUTPUT
+            echo "terraform=true" >> $GITHUB_OUTPUT
+            echo "terraform_global=true" >> $GITHUB_OUTPUT
+            echo "terraform_multi_env=true" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+          
           # Get list of changed files
           CHANGED_FILES=$(git diff --name-only HEAD~1 HEAD)
           echo "Changed files:"
@@ -82,14 +92,6 @@ jobs:
             echo "terraform_multi_env=false" >> $GITHUB_OUTPUT
           fi
           
-          # Force deploy override
-          if [[ "${{ github.event.inputs.force_deploy }}" == "true" ]]; then
-            echo "🚀 Force deploy enabled - marking all as changed"
-            echo "lambda=true" >> $GITHUB_OUTPUT
-            echo "terraform=true" >> $GITHUB_OUTPUT
-            echo "terraform_global=true" >> $GITHUB_OUTPUT
-            echo "terraform_multi_env=true" >> $GITHUB_OUTPUT
-          fi
 
   build-lambdas:
     needs: detect-changes
