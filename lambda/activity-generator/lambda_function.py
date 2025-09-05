@@ -469,7 +469,7 @@ async def async_handler(event, context):
             'body': json.dumps({'error': f'Failed to generate activity: {str(e)}'})
         }
 
-# For local testing
+# For local testing  
 if __name__ == "__main__":
     test_event = {
         'body': json.dumps({
