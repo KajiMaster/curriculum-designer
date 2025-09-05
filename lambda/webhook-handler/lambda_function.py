@@ -1,7 +1,8 @@
 """
 Trello AI Webhook Lambda Handler
 Responds to Trello events with AI assistance and activity generation.
-Supports tier_3 activity generation and quality ranking system.
+Supports tier_3 quality activity generation and ranking system.
+Version: 2.0.0 - Tier 3 Focus
 """
 
 import json
