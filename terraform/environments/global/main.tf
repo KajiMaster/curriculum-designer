@@ -184,11 +184,14 @@ resource "aws_iam_role_policy" "github_actions_lambda_deploy" {
           "dynamodb:DeleteTable",
           "dynamodb:DescribeTable",
           "dynamodb:DescribeContinuousBackups",
+          "dynamodb:DescribeTimeToLive",
+          "dynamodb:UpdateContinuousBackups",
           "dynamodb:TagResource",
-          "dynamodb:ListTagsOfResource"
+          "dynamodb:ListTagsOfResource",
+          "dynamodb:UntagResource"
         ]
         Resource = [
-          "arn:aws:dynamodb:us-east-1:*:table/curriculum-activities*"
+          "arn:aws:dynamodb:us-east-1:*:table/curriculum-*"
         ]
       },
       {
@@ -204,11 +207,34 @@ resource "aws_iam_role_policy" "github_actions_lambda_deploy" {
           "iam:DeleteRolePolicy",
           "iam:GetRolePolicy",
           "iam:ListAttachedRolePolicies",
-          "iam:ListRolePolicies"
+          "iam:ListRolePolicies",
+          "iam:TagRole",
+          "iam:UntagRole"
         ]
         Resource = [
-          "arn:aws:iam::*:role/curriculum-activity-generator-role*"
+          "arn:aws:iam::*:role/curriculum-*"
         ]
+      },
+      {
+        Effect = "Allow"
+        Action = [
+          "logs:CreateLogGroup",
+          "logs:DeleteLogGroup",
+          "logs:DescribeLogGroups",
+          "logs:TagResource",
+          "logs:UntagResource",
+          "logs:PutRetentionPolicy"
+        ]
+        Resource = [
+          "arn:aws:logs:us-east-1:*:log-group:/aws/lambda/curriculum-*"
+        ]
+      },
+      {
+        Effect = "Allow"
+        Action = [
+          "apigateway:*"
+        ]
+        Resource = "*"
       },
       {
         Effect = "Allow"
