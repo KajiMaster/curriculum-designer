@@ -102,12 +102,28 @@ jobs:
           # Build ALL Lambda functions when ANY Lambda changes
           ./lambda-deployments/build.sh
 
-      - name: Upload Lambda artifacts
+      - name: Upload webhook-handler artifact
         uses: actions/upload-artifact@v4
         with:
-          name: lambda-deployments
-          path: lambda-deployments/
+          name: webhook-handler-deployment
+          path: lambda-deployments/webhook-handler/deployment.zip
           retention-days: 1
+          
+      - name: Upload mcp-server artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: mcp-server-deployment
+          path: lambda-deployments/mcp-server/deployment.zip
+          retention-days: 1
+          if-no-files-found: ignore
+          
+      - name: Upload activity-generator artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: activity-generator-deployment
+          path: lambda-deployments/activity-generator/deployment.zip
+          retention-days: 1
+          if-no-files-found: ignore
 
   deploy-infrastructure:
     needs: [detect-changes, build-lambdas]
@@ -133,10 +149,33 @@ jobs:
 
       - name: Download Lambda artifacts
         if: needs.detect-changes.outputs.lambda_changed == 'true'
+        run: |
+          mkdir -p lambda-deployments/webhook-handler
+          mkdir -p lambda-deployments/mcp-server
+          mkdir -p lambda-deployments/activity-generator
+          
+      - name: Download webhook-handler artifact
+        if: needs.detect-changes.outputs.lambda_changed == 'true'
         uses: actions/download-artifact@v4
         with:
-          name: lambda-deployments
-          path: lambda-deployments/
+          name: webhook-handler-deployment
+          path: lambda-deployments/webhook-handler/
+          
+      - name: Download mcp-server artifact  
+        if: needs.detect-changes.outputs.lambda_changed == 'true'
+        uses: actions/download-artifact@v4
+        continue-on-error: true
+        with:
+          name: mcp-server-deployment
+          path: lambda-deployments/mcp-server/
+          
+      - name: Download activity-generator artifact
+        if: needs.detect-changes.outputs.lambda_changed == 'true'
+        uses: actions/download-artifact@v4
+        continue-on-error: true
+        with:
+          name: activity-generator-deployment
+          path: lambda-deployments/activity-generator/
 
       # Note: Global infrastructure deployment removed from CI/CD
       # Deploy manually when needed for global resources like activity generator
