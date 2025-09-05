@@ -180,23 +180,10 @@ jobs:
       # Note: Global infrastructure deployment removed from CI/CD
       # Deploy manually when needed for global resources like activity generator
 
-      # Deploy Multi-Environment Infrastructure (Webhook, MCP)
-      - name: Deploy Multi-Environment Infrastructure  
-        if: needs.detect-changes.outputs.terraform_multi_env_changed == 'true' || needs.detect-changes.outputs.lambda_changed == 'true'
-        run: |
-          echo "🏗️ Deploying Multi-Environment Infrastructure..."
-          cd terraform/environments/multi-env
-          terraform init
-          
-          if [[ "${{ needs.detect-changes.outputs.terraform_multi_env_changed }}" == "true" ]]; then
-            # Apply all changes if terraform files changed
-            terraform apply -var-file="dev.tfvars" -auto-approve
-          elif [[ "${{ needs.detect-changes.outputs.lambda_changed }}" == "true" ]]; then
-            # Update Lambda functions if any Lambda changed
-            terraform apply -var-file="dev.tfvars" -target=aws_lambda_function.webhook_handler -target=aws_lambda_function.mcp_server -refresh=false -auto-approve
-          fi
-
-      # Legacy Lambda updates (for functions not yet managed by Terraform)
+      # Skip Terraform for now since resources exist outside of state
+      # TODO: Import existing resources into Terraform state
+      
+      # Update Lambda Functions via AWS CLI directly
       - name: Update Lambda Functions via AWS CLI
         if: needs.detect-changes.outputs.lambda_changed == 'true'
         run: |

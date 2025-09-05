@@ -580,12 +580,12 @@ output "openai_configured" {
 }
 
 output "webhook_api_url" {
-  value = aws_api_gateway_deployment.webhook_deployment.invoke_url
+  value = "https://${aws_api_gateway_rest_api.webhook_api.id}.execute-api.${var.aws_region}.amazonaws.com/${var.environment}"
   description = "Base URL for webhook API"
 }
 
 output "webhook_endpoint" {
-  value = "${aws_api_gateway_deployment.webhook_deployment.invoke_url}/webhook"
+  value = "https://${aws_api_gateway_rest_api.webhook_api.id}.execute-api.${var.aws_region}.amazonaws.com/${var.environment}/webhook"
   description = "Full webhook URL to register with Trello"
 }
 
@@ -600,12 +600,12 @@ output "github_actions_role_arn" {
 }
 
 output "mcp_api_url" {
-  value = aws_api_gateway_deployment.mcp_deployment.invoke_url
+  value = "https://${aws_api_gateway_rest_api.mcp_api.id}.execute-api.${var.aws_region}.amazonaws.com/${var.environment}"
   description = "Base URL for MCP API"
 }
 
 output "mcp_health_endpoint" {
-  value = "${aws_api_gateway_deployment.mcp_deployment.invoke_url}/health"
+  value = "https://${aws_api_gateway_rest_api.mcp_api.id}.execute-api.${var.aws_region}.amazonaws.com/${var.environment}/health"
   description = "MCP server health check endpoint"
 }
 
