@@ -53,10 +53,10 @@ resource "aws_dynamodb_table" "curriculum_activities" {
 
 # Lambda Function for Activity Generation
 resource "aws_lambda_function" "activity_generator" {
-  filename      = "${path.module}/../../lambda_deployment/activity_generator.zip"
+  filename      = "${path.module}/../../../lambda-deployments/activity-generator/deployment.zip"
   function_name = "curriculum-activity-generator"
   role         = aws_iam_role.activity_generator_role.arn
-  handler      = "activity_generator.handler"
+  handler      = "lambda_function.handler"
   runtime      = "python3.11"
   timeout      = 60
   memory_size  = 512

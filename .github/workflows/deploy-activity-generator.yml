@@ -39,8 +39,8 @@ jobs:
 
       - name: Build deployment package
         run: |
-          cd lambda
-          zip activity_generator.zip activity_generator.py
+          chmod +x lambda-deployments/build.sh
+          ./lambda-deployments/build.sh activity-generator
 
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v2
@@ -54,7 +54,7 @@ jobs:
             echo "Updating existing Lambda function..."
             aws lambda update-function-code \
               --function-name ${{ env.LAMBDA_FUNCTION_NAME }} \
-              --zip-file fileb://lambda/activity_generator.zip
+              --zip-file fileb://lambda-deployments/activity-generator/deployment.zip
             
             # Wait for update to complete
             aws lambda wait function-updated \

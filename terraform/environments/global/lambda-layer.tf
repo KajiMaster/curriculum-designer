@@ -4,7 +4,7 @@
 
 # Lambda layer for webhook handler dependencies
 resource "aws_lambda_layer_version" "webhook_dependencies" {
-  filename          = "${path.module}/../../../webhook-handler/dependencies-layer.zip"
+  filename          = "${path.module}/../../../lambda-layers/webhook-dependencies.zip"
   layer_name        = "curriculum-designer-webhook-dependencies"
   description       = "Dependencies for curriculum designer webhook handler"
   
@@ -16,7 +16,7 @@ resource "aws_lambda_layer_version" "webhook_dependencies" {
 
 # Lambda layer for MCP server dependencies  
 resource "aws_lambda_layer_version" "mcp_dependencies" {
-  filename          = "${path.module}/../../../mcp-server/mcp-dependencies-layer.zip"
+  filename          = "${path.module}/../../../lambda-layers/mcp-dependencies.zip"
   layer_name        = "curriculum-designer-mcp-dependencies"
   description       = "Dependencies for curriculum designer MCP server"
   
@@ -28,7 +28,7 @@ resource "aws_lambda_layer_version" "mcp_dependencies" {
 
 # Lambda layer for HTTPX with asyncio support (for activity generator)
 resource "aws_lambda_layer_version" "httpx_dependencies" {
-  filename          = "${path.module}/../../../lambda_layer_fix/unified_layer.zip"
+  filename          = "${path.module}/../../../lambda-layers/httpx-dependencies.zip"
   layer_name        = "curriculum-httpx-dependencies"
   description       = "HTTPX with asyncio dependencies for activity generation"
   

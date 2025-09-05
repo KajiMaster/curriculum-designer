@@ -71,26 +71,15 @@ jobs:
 
       - name: Create deployment package (code only - dependencies in layer)
         run: |
-          cd webhook-handler
-          
-          # Create clean deployment directory
-          rm -rf lambda_deployment
-          mkdir lambda_deployment
-          
-          # Copy only application code (dependencies are in Lambda layer)
-          cp lambda_main.py lambda_deployment/
-          
-          # Create deployment zip
-          cd lambda_deployment
-          zip -r ../lambda_deployment.zip .
-          cd ..
+          # Use universal build script
+          chmod +x lambda-deployments/build.sh
+          ./lambda-deployments/build.sh webhook-handler
 
       - name: Deploy to Lambda (Development)
         run: |
-          cd webhook-handler
           aws lambda update-function-code \
             --function-name ${{ env.LAMBDA_FUNCTION_NAME_DEV }} \
-            --zip-file fileb://lambda_deployment.zip
+            --zip-file fileb://lambda-deployments/webhook-handler/deployment.zip
             
       - name: Wait for function update to complete
         run: |
@@ -102,7 +91,7 @@ jobs:
           aws lambda update-function-configuration \
             --function-name ${{ env.LAMBDA_FUNCTION_NAME_DEV }} \
             --runtime python3.11 \
-            --handler lambda_main.handler \
+            --handler lambda_function.handler \
             --timeout 30
 
       - name: Test deployment
