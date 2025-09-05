@@ -4,7 +4,9 @@ on:
   push:
     branches: [develop]
     paths:
-      - 'lambda/activity_generator.py'
+      - 'lambda/activity-generator/**'
+      - 'terraform/environments/global/activity-generator.tf'
+      - 'terraform/environments/global/main.tf'
       - '.github/workflows/deploy-activity-generator.yml'
   workflow_dispatch:
 
