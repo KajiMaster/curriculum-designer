@@ -155,6 +155,7 @@ resource "aws_iam_role_policy" "github_actions_lambda_deploy" {
           "lambda:DeleteFunction",
           "lambda:GetLayerVersion",
           "lambda:ListLayers",
+          "lambda:ListLayerVersions",
           "lambda:AddPermission",
           "lambda:RemovePermission"
         ]
@@ -182,6 +183,7 @@ resource "aws_iam_role_policy" "github_actions_lambda_deploy" {
           "dynamodb:CreateTable",
           "dynamodb:DeleteTable",
           "dynamodb:DescribeTable",
+          "dynamodb:DescribeContinuousBackups",
           "dynamodb:TagResource",
           "dynamodb:ListTagsOfResource"
         ]
