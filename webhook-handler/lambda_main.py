@@ -212,7 +212,13 @@ async def handle_comment(action):
         ai_request = comment_text.lower().replace("@ai", "").strip()
         print(f"AI request: {ai_request}")
 
-        # Check for framework commands first
+        # Check for activity command
+        if "activity" in ai_request and not "framework" in ai_request:
+            print(f"Detected activity command: {ai_request}")
+            await handle_activity_command(ai_request, card_details, card_id)
+            return
+
+        # Check for framework commands
         if any(cmd in ai_request for cmd in ["save framework", "generate variants", "list frameworks"]):
             print(f"Detected framework command: {ai_request}")
             await handle_framework_command(ai_request, card_details, card_id)
@@ -611,6 +617,155 @@ Make it practical, engaging, and immediately usable by teachers. Include emojis 
         import traceback
         traceback.print_exc()
         await trello.add_comment(card_id, f"❌ Error generating variants: {str(e)}")
+
+
+async def handle_activity_command(ai_request: str, card_details: dict, card_id: str):
+    """Handle activity generation commands"""
+    import re
+    
+    print(f"Processing activity command: {ai_request}")
+    
+    try:
+        # Parse parameters from request
+        # Format: @ai activity [topic] [grade_level] [duration] [activity_type]
+        # Example: @ai activity "food and drinks" 3 15 preference_choice
+        
+        # Extract parameters using regex
+        # Look for quoted strings first (for multi-word topics)
+        topic_match = re.search(r'"([^"]+)"', ai_request) or re.search(r'topic[:\s]+([^\s,]+)', ai_request)
+        grade_match = re.search(r'grade[:\s]+([^\s,]+)', ai_request) or re.search(r'\b([K1-9]|1[0-2])\b', ai_request)
+        duration_match = re.search(r'duration[:\s]+(\d+)', ai_request) or re.search(r'(\d+)\s*min', ai_request)
+        type_match = re.search(r'type[:\s]+([^\s,]+)', ai_request) or re.search(r'(preference_choice|vocabulary_builder|compare_contrast|sequence_builder|story_response|interactive_game|discovery_exploration)', ai_request)
+        
+        # Get topic from card if not specified
+        if not topic_match:
+            topic = card_details.get('name', 'English Language Learning')
+        else:
+            topic = topic_match.group(1)
+        
+        # Default values
+        grade_level = grade_match.group(1) if grade_match else "3"
+        duration = int(duration_match.group(1)) if duration_match else 15
+        activity_type = type_match.group(1) if type_match else None
+        
+        # Get context from card description
+        context = card_details.get('desc', '')[:500] if card_details.get('desc') else None
+        
+        await trello.add_comment(card_id, f"🎯 **Generating Activity**\n\n📚 Topic: {topic}\n📊 Grade Level: {grade_level}\n⏱️ Duration: {duration} minutes\n🎨 Type: {activity_type or 'Auto-selected'}")
+        
+        # Call activity generator Lambda
+        lambda_client = boto3.client('lambda', region_name='us-east-1')
+        
+        payload = {
+            'topic': topic,
+            'grade_level': grade_level,
+            'duration': duration
+        }
+        
+        if activity_type:
+            payload['activity_type'] = activity_type
+        if context:
+            payload['context'] = context
+        
+        print(f"Invoking activity generator with payload: {payload}")
+        
+        # Invoke Lambda function (assuming it's deployed as curriculum-activity-generator)
+        response = lambda_client.invoke(
+            FunctionName='curriculum-activity-generator',
+            InvocationType='RequestResponse',
+            Payload=json.dumps({'body': json.dumps(payload)})
+        )
+        
+        # Parse response
+        result = json.loads(response['Payload'].read())
+        print(f"Activity generator response: {result}")
+        
+        if result.get('statusCode') == 200:
+            activity = json.loads(result.get('body', '{}'))
+            
+            # Format activity for Trello comment
+            comment = f"✅ **Activity Generated Successfully!**\n\n"
+            comment += f"**{activity.get('title', 'Activity')}**\n\n"
+            
+            # Add activity ID for tracking
+            if activity.get('activity_id'):
+                comment += f"📌 Activity ID: `{activity['activity_id']}`\n\n"
+            
+            # Format slides for display
+            slides = activity.get('slides', [])
+            for slide in slides:
+                comment += f"**Slide {slide.get('slide_number', '')} - {slide.get('type', '')}**\n"
+                comment += f"*Title:* {slide.get('title', '')}\n\n"
+                
+                content = slide.get('content', {})
+                if isinstance(content, dict):
+                    if content.get('instructions'):
+                        comment += f"📝 *Instructions:* {content['instructions']}\n\n"
+                    if content.get('vocabulary_items'):
+                        comment += f"📚 *Vocabulary:* {', '.join(content['vocabulary_items'][:5])}"
+                        if len(content['vocabulary_items']) > 5:
+                            comment += f" (and {len(content['vocabulary_items']) - 5} more)"
+                        comment += "\n\n"
+                    if content.get('questions'):
+                        comment += f"❓ *Practice Questions:*\n"
+                        for i, q in enumerate(content['questions'][:3], 1):
+                            comment += f"  {i}. {q}\n"
+                        if len(content['questions']) > 3:
+                            comment += f"  (and {len(content['questions']) - 3} more)\n"
+                        comment += "\n"
+                else:
+                    comment += f"{str(content)[:200]}...\n\n"
+                
+                if slide.get('teacher_notes'):
+                    comment += f"👩‍🏫 *Teacher Notes:* {slide['teacher_notes'][:100]}...\n"
+                if slide.get('timing'):
+                    comment += f"⏱️ *Timing:* {slide['timing']}\n"
+                comment += "\n---\n\n"
+            
+            # Add metadata
+            metadata = activity.get('metadata', {})
+            if metadata:
+                comment += f"**Activity Details:**\n"
+                comment += f"• Energy Level: {metadata.get('energy_level', 'medium')}\n"
+                comment += f"• Cognitive Stage: {metadata.get('cognitive_stage', 'practice')}\n"
+                comment += f"• Duration: {metadata.get('duration', '15 minutes')}\n"
+            
+            # Truncate if too long for Trello
+            if len(comment) > 16000:
+                comment = comment[:15900] + "\n\n...[Content truncated for display]"
+            
+            await trello.add_comment(card_id, comment)
+            
+            # Create a separate card with full activity details
+            if activity.get('activity_id'):
+                # Create activity card in Activities list
+                activities_list_id = await get_or_create_list(card_details.get('idBoard'), "Generated Activities")
+                if activities_list_id:
+                    activity_card_data = {
+                        'idList': activities_list_id,
+                        'name': activity.get('title', f"Activity: {topic}"),
+                        'desc': json.dumps(activity, indent=2),
+                        'pos': 'bottom',
+                        **trello.auth_params
+                    }
+                    
+                    async with httpx.AsyncClient() as client:
+                        card_response = await client.post(
+                            f"{TRELLO_BASE}/cards",
+                            data=activity_card_data
+                        )
+                        if card_response.status_code == 200:
+                            new_card = card_response.json()
+                            await trello.add_comment(card_id, f"📋 Full activity details saved to card: {new_card.get('shortUrl')}")
+        else:
+            error_msg = json.loads(result.get('body', '{}')).get('error', 'Unknown error')
+            await trello.add_comment(card_id, f"❌ **Activity Generation Failed**\n\n{error_msg}")
+            
+    except Exception as e:
+        print(f"Error in activity generation: {e}")
+        import traceback
+        traceback.print_exc()
+        await trello.add_comment(card_id, f"❌ **Error generating activity:** {str(e)}\n\nPlease check your parameters and try again.\n\n**Usage:** `@ai activity \"topic\" grade_level duration [type]`\n\n**Example:** `@ai activity \"food and drinks\" 3 15 preference_choice`")
 
 
 async def handle_framework_command(ai_request: str, card_details: dict, card_id: str):

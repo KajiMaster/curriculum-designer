@@ -1,0 +1,117 @@
+{
+  "templates": {
+    "preference_choice": {
+      "name": "Preference Choice Activity",
+      "structure": {
+        "title_pattern": "All About Me: My Favorite {topic} is...",
+        "slides": [
+          {
+            "type": "vocabulary_introduction",
+            "components": [
+              "visual_grid_with_labels",
+              "pronunciation_practice"
+            ]
+          },
+          {
+            "type": "guided_practice",
+            "components": [
+              "binary_choices_with_visuals",
+              "example_sentence_frame",
+              "response_lines"
+            ]
+          }
+        ],
+        "parameters": {
+          "topic": "string",
+          "vocabulary_items": "array",
+          "visual_support_level": ["full_images", "emojis", "text_only"],
+          "sentence_frame": "I prefer {item}"
+        }
+      }
+    },
+    "compare_contrast": {
+      "name": "Compare and Contrast",
+      "structure": {
+        "title_pattern": "Comparing {topic1} and {topic2}",
+        "slides": [
+          {
+            "type": "introduction",
+            "components": ["visual_comparison", "vocabulary_bank"]
+          },
+          {
+            "type": "analysis",
+            "components": ["venn_diagram", "guided_questions"]
+          }
+        ]
+      }
+    },
+    "sequence_builder": {
+      "name": "Step-by-Step Sequence",
+      "structure": {
+        "title_pattern": "How to {action}",
+        "slides": [
+          {
+            "type": "overview",
+            "components": ["visual_sequence", "key_vocabulary"]
+          },
+          {
+            "type": "practice",
+            "components": ["ordering_activity", "transition_words"]
+          }
+        ]
+      }
+    },
+    "vocabulary_builder": {
+      "name": "Vocabulary Builder",
+      "structure": {
+        "title_pattern": "Learning About {topic}",
+        "slides": [
+          {
+            "type": "introduction",
+            "components": ["visual_vocabulary", "pronunciation"]
+          },
+          {
+            "type": "practice",
+            "components": ["matching", "fill_in_blank", "speaking_prompts"]
+          }
+        ]
+      }
+    },
+    "story_response": {
+      "name": "Story Response",
+      "structure": {
+        "title_pattern": "My {story_type} Story",
+        "slides": [
+          {
+            "type": "prompt",
+            "components": ["visual_prompt", "question_starters"]
+          },
+          {
+            "type": "response",
+            "components": ["sentence_frames", "word_bank", "drawing_space"]
+          }
+        ]
+      }
+    }
+  },
+  "component_library": {
+    "visual_grid_with_labels": {
+      "description": "3x3 grid of images with text labels below",
+      "parameters": ["items", "image_urls", "labels"]
+    },
+    "binary_choices_with_visuals": {
+      "description": "This or That format with visual support",
+      "parameters": ["choice_pairs", "visual_type", "response_format"]
+    },
+    "sentence_frames": {
+      "description": "Scaffolded sentence starters",
+      "parameters": ["complexity_level", "topic", "verb_tense"]
+    }
+  },
+  "design_principles": {
+    "cognitive_load": "Start high support, gradually release",
+    "engagement": "Personal connection and choice",
+    "interaction": "Speaking, writing, and visual processing",
+    "scaffolding": "Multiple entry points for different levels"
+  }
+}

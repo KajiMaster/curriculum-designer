@@ -1,0 +1,87 @@
+name: Deploy Activity Generator Lambda
+
+on:
+  push:
+    branches: [develop]
+    paths:
+      - 'lambda/activity_generator.py'
+      - '.github/workflows/deploy-activity-generator.yml'
+  workflow_dispatch:
+
+env:
+  AWS_REGION: us-east-1
+  LAMBDA_FUNCTION_NAME: curriculum-activity-generator
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: development
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::123324351829:role/curriculum-designer-github-actions
+          role-session-name: GitHubActions-${{ github.run_id }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Build deployment package
+        run: |
+          cd lambda
+          zip activity_generator.zip activity_generator.py
+
+      - name: Deploy Lambda function
+        run: |
+          # Check if function exists
+          if aws lambda get-function --function-name ${{ env.LAMBDA_FUNCTION_NAME }} 2>/dev/null; then
+            echo "Updating existing Lambda function..."
+            aws lambda update-function-code \
+              --function-name ${{ env.LAMBDA_FUNCTION_NAME }} \
+              --zip-file fileb://lambda/activity_generator.zip
+            
+            # Wait for update to complete
+            aws lambda wait function-updated \
+              --function-name ${{ env.LAMBDA_FUNCTION_NAME }}
+            
+            echo "Function code updated successfully"
+          else
+            echo "Lambda function does not exist. Creating via Terraform..."
+            
+            # Run Terraform to create the function
+            cd terraform/environments/global
+            terraform init
+            terraform apply -target=aws_lambda_function.activity_generator -auto-approve
+          fi
+
+      - name: Test deployment
+        run: |
+          TEST_PAYLOAD='{
+            "body": "{\"topic\": \"Test Deployment\", \"grade_level\": \"3\", \"duration\": 10}"
+          }'
+          
+          aws lambda invoke \
+            --function-name ${{ env.LAMBDA_FUNCTION_NAME }} \
+            --payload "$TEST_PAYLOAD" \
+            --cli-binary-format raw-in-base64-out \
+            test_response.json
+          
+          # Check if invocation was successful
+          if [ -f test_response.json ]; then
+            echo "Lambda invocation successful"
+            cat test_response.json | jq -r '.statusCode' | grep -q "200" && echo "Activity generation test passed!" || echo "Activity generation test failed"
+          else
+            echo "Lambda invocation failed"
+            exit 1
+          fi
