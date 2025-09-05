@@ -26,6 +26,18 @@ resource "aws_lambda_layer_version" "mcp_dependencies" {
   source_code_hash = fileexists("${path.module}/../../../mcp-server/mcp-dependencies-layer.zip") ? filebase64sha256("${path.module}/../../../mcp-server/mcp-dependencies-layer.zip") : null
 }
 
+# Lambda layer for HTTPX with asyncio support (for activity generator)
+resource "aws_lambda_layer_version" "httpx_dependencies" {
+  filename          = "${path.module}/../../../lambda_layer_fix/unified_layer.zip"
+  layer_name        = "curriculum-httpx-dependencies"
+  description       = "HTTPX with asyncio dependencies for activity generation"
+  
+  compatible_runtimes = ["python3.11"]
+  
+  # Only create if the zip file exists
+  source_code_hash = fileexists("${path.module}/../../../lambda_layer_fix/unified_layer.zip") ? filebase64sha256("${path.module}/../../../lambda_layer_fix/unified_layer.zip") : null
+}
+
 # Output layer ARNs for use in other environments
 output "webhook_dependencies_layer_arn" {
   value = aws_lambda_layer_version.webhook_dependencies.arn
@@ -35,4 +47,9 @@ output "webhook_dependencies_layer_arn" {
 output "mcp_dependencies_layer_arn" {
   value = aws_lambda_layer_version.mcp_dependencies.arn
   description = "ARN of the MCP dependencies Lambda layer"
+}
+
+output "httpx_dependencies_layer_arn" {
+  value = aws_lambda_layer_version.httpx_dependencies.arn
+  description = "ARN of the HTTPX dependencies Lambda layer"
 }

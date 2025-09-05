@@ -62,7 +62,7 @@ resource "aws_lambda_function" "activity_generator" {
   memory_size  = 512
 
   layers = [
-    aws_lambda_layer_version.httpx_dependencies.arn
+    data.aws_lambda_layer_version.httpx_dependencies.arn
   ]
 
   environment {
@@ -179,9 +179,14 @@ resource "aws_iam_role_policy" "webhook_invoke_activity" {
   })
 }
 
-# Data sources
+# Data sources for existing resources
 data "aws_region" "current" {}
 data "aws_caller_identity" "current" {}
+
+# Reference to existing HTTPX dependencies layer (latest version)
+data "aws_lambda_layer_version" "httpx_dependencies" {
+  layer_name = "curriculum-httpx-dependencies"
+}
 
 # Output the Lambda function details
 output "activity_generator_function_name" {

@@ -42,6 +42,11 @@ jobs:
           cd lambda
           zip activity_generator.zip activity_generator.py
 
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v2
+        with:
+          terraform_version: 1.5.0
+
       - name: Deploy Lambda function
         run: |
           # Check if function exists
