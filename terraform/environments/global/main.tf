@@ -135,7 +135,7 @@ resource "aws_iam_role" "github_actions" {
   }
 }
 
-# Policy for GitHub Actions to deploy Lambda functions
+# Policy for GitHub Actions to deploy Lambda functions and manage infrastructure
 resource "aws_iam_role_policy" "github_actions_lambda_deploy" {
   name = "curriculum-designer-github-actions-lambda-deploy"
   role = aws_iam_role.github_actions.id
@@ -150,10 +150,62 @@ resource "aws_iam_role_policy" "github_actions_lambda_deploy" {
           "lambda:UpdateFunctionConfiguration",
           "lambda:GetFunction",
           "lambda:GetFunctionConfiguration",
-          "lambda:InvokeFunction"
+          "lambda:InvokeFunction",
+          "lambda:CreateFunction",
+          "lambda:DeleteFunction",
+          "lambda:GetLayerVersion",
+          "lambda:ListLayers",
+          "lambda:AddPermission",
+          "lambda:RemovePermission"
         ]
         Resource = [
-          "arn:aws:lambda:us-east-1:*:function:curriculum-designer-webhook-*"
+          "arn:aws:lambda:us-east-1:*:function:curriculum-designer-webhook-*",
+          "arn:aws:lambda:us-east-1:*:function:curriculum-activity-generator*",
+          "arn:aws:lambda:us-east-1:*:layer:curriculum-*"
+        ]
+      },
+      {
+        Effect = "Allow"
+        Action = [
+          "s3:GetObject",
+          "s3:PutObject",
+          "s3:ListBucket"
+        ]
+        Resource = [
+          "arn:aws:s3:::terraform-state-curriculum-designer",
+          "arn:aws:s3:::terraform-state-curriculum-designer/*"
+        ]
+      },
+      {
+        Effect = "Allow"
+        Action = [
+          "dynamodb:CreateTable",
+          "dynamodb:DeleteTable",
+          "dynamodb:DescribeTable",
+          "dynamodb:TagResource",
+          "dynamodb:ListTagsOfResource"
+        ]
+        Resource = [
+          "arn:aws:dynamodb:us-east-1:*:table/curriculum-activities*"
+        ]
+      },
+      {
+        Effect = "Allow"
+        Action = [
+          "iam:GetRole",
+          "iam:PassRole",
+          "iam:CreateRole",
+          "iam:DeleteRole",
+          "iam:AttachRolePolicy",
+          "iam:DetachRolePolicy",
+          "iam:PutRolePolicy",
+          "iam:DeleteRolePolicy",
+          "iam:GetRolePolicy",
+          "iam:ListAttachedRolePolicies",
+          "iam:ListRolePolicies"
+        ]
+        Resource = [
+          "arn:aws:iam::*:role/curriculum-activity-generator-role*"
         ]
       }
     ]
