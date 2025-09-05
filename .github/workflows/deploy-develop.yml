@@ -14,13 +14,6 @@ on:
         required: false
         default: false
         type: boolean
-  workflow_dispatch:
-    inputs:
-      force_deploy:
-        description: 'Force deploy all components'
-        required: false
-        default: false
-        type: boolean
 
 env:
   AWS_REGION: us-east-1
