@@ -29,9 +29,6 @@ jobs:
     outputs:
       lambda_changed: ${{ steps.changes.outputs.lambda }}
       terraform_changed: ${{ steps.changes.outputs.terraform }}
-      activity_generator_changed: ${{ steps.changes.outputs.activity_generator }}
-      webhook_handler_changed: ${{ steps.changes.outputs.webhook_handler }}
-      mcp_server_changed: ${{ steps.changes.outputs.mcp_server }}
       terraform_global_changed: ${{ steps.changes.outputs.terraform_global }}
       terraform_multi_env_changed: ${{ steps.changes.outputs.terraform_multi_env }}
       
@@ -46,12 +43,9 @@ jobs:
         run: |
           # Get list of changed files (or all files if force deploy)
           if [[ "${{ github.event.inputs.force_deploy }}" == "true" ]]; then
-            echo "Force deploy enabled - marking all as changed"
+            echo "🚀 Force deploy enabled - marking all as changed for PRODUCTION"
             echo "lambda=true" >> $GITHUB_OUTPUT
             echo "terraform=true" >> $GITHUB_OUTPUT
-            echo "activity_generator=true" >> $GITHUB_OUTPUT
-            echo "webhook_handler=true" >> $GITHUB_OUTPUT
-            echo "mcp_server=true" >> $GITHUB_OUTPUT
             echo "terraform_global=true" >> $GITHUB_OUTPUT
             echo "terraform_multi_env=true" >> $GITHUB_OUTPUT
             exit 0

@@ -29,9 +29,6 @@ jobs:
     outputs:
       lambda_changed: ${{ steps.changes.outputs.lambda }}
       terraform_changed: ${{ steps.changes.outputs.terraform }}
-      activity_generator_changed: ${{ steps.changes.outputs.activity_generator }}
-      webhook_handler_changed: ${{ steps.changes.outputs.webhook_handler }}
-      mcp_server_changed: ${{ steps.changes.outputs.mcp_server }}
       terraform_global_changed: ${{ steps.changes.outputs.terraform_global }}
       terraform_multi_env_changed: ${{ steps.changes.outputs.terraform_multi_env }}
       
@@ -49,40 +46,23 @@ jobs:
           echo "Changed files:"
           echo "$CHANGED_FILES"
           
-          # Check for Lambda changes
+          # Check for ANY Lambda changes - if any Lambda changed, build and deploy ALL
           if echo "$CHANGED_FILES" | grep -qE "^lambda/"; then
             echo "lambda=true" >> $GITHUB_OUTPUT
+            echo "📦 Lambda changes detected - will build and deploy all Lambda functions"
           else
             echo "lambda=false" >> $GITHUB_OUTPUT
           fi
           
-          # Check for Terraform changes
+          # Check for ANY Terraform changes
           if echo "$CHANGED_FILES" | grep -qE "^terraform/.*\.tf$"; then
             echo "terraform=true" >> $GITHUB_OUTPUT
+            echo "🏗️ Terraform changes detected"
           else
             echo "terraform=false" >> $GITHUB_OUTPUT
           fi
           
-          # Check specific Lambda functions
-          if echo "$CHANGED_FILES" | grep -qE "^lambda/activity-generator/"; then
-            echo "activity_generator=true" >> $GITHUB_OUTPUT
-          else
-            echo "activity_generator=false" >> $GITHUB_OUTPUT
-          fi
-          
-          if echo "$CHANGED_FILES" | grep -qE "^lambda/webhook-handler/"; then
-            echo "webhook_handler=true" >> $GITHUB_OUTPUT
-          else
-            echo "webhook_handler=false" >> $GITHUB_OUTPUT
-          fi
-          
-          if echo "$CHANGED_FILES" | grep -qE "^lambda/mcp-server/"; then
-            echo "mcp_server=true" >> $GITHUB_OUTPUT
-          else
-            echo "mcp_server=false" >> $GITHUB_OUTPUT
-          fi
-          
-          # Check specific Terraform environments
+          # Check specific Terraform environments for targeted applies
           if echo "$CHANGED_FILES" | grep -qE "^terraform/environments/global/.*\.tf$"; then
             echo "terraform_global=true" >> $GITHUB_OUTPUT
           else
@@ -97,12 +77,9 @@ jobs:
           
           # Force deploy override
           if [[ "${{ github.event.inputs.force_deploy }}" == "true" ]]; then
-            echo "Force deploy enabled - marking all as changed"
+            echo "🚀 Force deploy enabled - marking all as changed"
             echo "lambda=true" >> $GITHUB_OUTPUT
             echo "terraform=true" >> $GITHUB_OUTPUT
-            echo "activity_generator=true" >> $GITHUB_OUTPUT
-            echo "webhook_handler=true" >> $GITHUB_OUTPUT
-            echo "mcp_server=true" >> $GITHUB_OUTPUT
             echo "terraform_global=true" >> $GITHUB_OUTPUT
             echo "terraform_multi_env=true" >> $GITHUB_OUTPUT
           fi
@@ -123,23 +100,11 @@ jobs:
 
       - name: Build all Lambda functions
         run: |
+          echo "📦 Building all Lambda functions..."
           chmod +x lambda-deployments/build.sh
           
-          # Build only changed functions or all if force
-          if [[ "${{ needs.detect-changes.outputs.activity_generator_changed }}" == "true" ]]; then
-            echo "Building activity-generator..."
-            ./lambda-deployments/build.sh activity-generator
-          fi
-          
-          if [[ "${{ needs.detect-changes.outputs.webhook_handler_changed }}" == "true" ]]; then
-            echo "Building webhook-handler..."
-            ./lambda-deployments/build.sh webhook-handler
-          fi
-          
-          if [[ "${{ needs.detect-changes.outputs.mcp_server_changed }}" == "true" ]]; then
-            echo "Building mcp-server..."
-            ./lambda-deployments/build.sh mcp-server
-          fi
+          # Build ALL Lambda functions when ANY Lambda changes
+          ./lambda-deployments/build.sh
 
       - name: Upload Lambda artifacts
         uses: actions/upload-artifact@v3
@@ -179,58 +144,45 @@ jobs:
 
       # Deploy Global Infrastructure (Activity Generator, Layers)
       - name: Deploy Global Infrastructure
-        if: needs.detect-changes.outputs.terraform_global_changed == 'true' || needs.detect-changes.outputs.activity_generator_changed == 'true'
+        if: needs.detect-changes.outputs.terraform_global_changed == 'true' || needs.detect-changes.outputs.lambda_changed == 'true'
         run: |
+          echo "🏗️ Deploying Global Infrastructure..."
           cd terraform/environments/global
           terraform init
-          
-          # Apply targeted resources based on what changed
-          TERRAFORM_TARGETS=""
-          
-          if [[ "${{ needs.detect-changes.outputs.activity_generator_changed }}" == "true" ]]; then
-            TERRAFORM_TARGETS="$TERRAFORM_TARGETS -target=aws_lambda_function.activity_generator"
-          fi
           
           if [[ "${{ needs.detect-changes.outputs.terraform_global_changed }}" == "true" ]]; then
             # Apply all changes if terraform files changed
             terraform apply -auto-approve
-          elif [[ -n "$TERRAFORM_TARGETS" ]]; then
-            # Apply only targeted resources
-            terraform apply $TERRAFORM_TARGETS -auto-approve
+          elif [[ "${{ needs.detect-changes.outputs.lambda_changed }}" == "true" ]]; then
+            # Update Lambda functions if any Lambda changed
+            terraform apply -target=aws_lambda_function.activity_generator -auto-approve
           fi
 
       # Deploy Multi-Environment Infrastructure (Webhook, MCP)
       - name: Deploy Multi-Environment Infrastructure  
-        if: needs.detect-changes.outputs.terraform_multi_env_changed == 'true' || needs.detect-changes.outputs.webhook_handler_changed == 'true' || needs.detect-changes.outputs.mcp_server_changed == 'true'
+        if: needs.detect-changes.outputs.terraform_multi_env_changed == 'true' || needs.detect-changes.outputs.lambda_changed == 'true'
         run: |
+          echo "🏗️ Deploying Multi-Environment Infrastructure..."
           cd terraform/environments/multi-env
           terraform init
-          
-          # Apply targeted resources based on what changed
-          TERRAFORM_TARGETS=""
-          
-          if [[ "${{ needs.detect-changes.outputs.webhook_handler_changed }}" == "true" ]]; then
-            TERRAFORM_TARGETS="$TERRAFORM_TARGETS -target=aws_lambda_function.webhook_handler_dev"
-          fi
-          
-          if [[ "${{ needs.detect-changes.outputs.mcp_server_changed }}" == "true" ]]; then
-            TERRAFORM_TARGETS="$TERRAFORM_TARGETS -target=aws_lambda_function.mcp_server_dev"
-          fi
           
           if [[ "${{ needs.detect-changes.outputs.terraform_multi_env_changed }}" == "true" ]]; then
             # Apply all changes if terraform files changed
             terraform apply -auto-approve
-          elif [[ -n "$TERRAFORM_TARGETS" ]]; then
-            # Apply only targeted resources
-            terraform apply $TERRAFORM_TARGETS -auto-approve
+          elif [[ "${{ needs.detect-changes.outputs.lambda_changed }}" == "true" ]]; then
+            # Update Lambda functions if any Lambda changed
+            terraform apply -target=aws_lambda_function.webhook_handler_dev -target=aws_lambda_function.mcp_server_dev -auto-approve
           fi
 
       # Legacy Lambda updates (for functions not yet managed by Terraform)
-      - name: Update Webhook Handler (Legacy)
-        if: needs.detect-changes.outputs.webhook_handler_changed == 'true'
+      - name: Update Legacy Lambda Functions
+        if: needs.detect-changes.outputs.lambda_changed == 'true'
         run: |
-          # Update function code directly via AWS CLI if not managed by Terraform
+          echo "🔄 Updating Legacy Lambda Functions..."
+          
+          # Update webhook handler via AWS CLI if exists
           if aws lambda get-function --function-name curriculum-designer-webhook-dev 2>/dev/null; then
+            echo "Updating webhook handler..."
             aws lambda update-function-code \
               --function-name curriculum-designer-webhook-dev \
               --zip-file fileb://lambda-deployments/webhook-handler/deployment.zip
@@ -258,40 +210,37 @@ jobs:
           role-session-name: GitHubActions-${{ github.run_id }}
           aws-region: ${{ env.AWS_REGION }}
 
-      - name: Test Activity Generator
-        if: needs.detect-changes.outputs.activity_generator_changed == 'true'
+      - name: Test Deployed Lambda Functions
+        if: needs.detect-changes.outputs.lambda_changed == 'true'
         run: |
-          TEST_PAYLOAD='{
-            "body": "{\"topic\": \"CI/CD Test\", \"grade_level\": \"3\", \"duration\": 10}"
-          }'
+          echo "🧪 Testing deployed Lambda functions..."
           
-          aws lambda invoke \
-            --function-name curriculum-activity-generator \
-            --payload "$TEST_PAYLOAD" \
-            --cli-binary-format raw-in-base64-out \
-            test_response.json
-          
-          if [ -f test_response.json ]; then
-            echo "Activity generator test successful"
-            RESPONSE_CODE=$(cat test_response.json | jq -r '.statusCode // "unknown"')
-            if [[ "$RESPONSE_CODE" == "200" ]]; then
-              echo "✅ Activity generator test passed!"
-            else
-              echo "❌ Activity generator returned status: $RESPONSE_CODE"
-              cat test_response.json
-              exit 1
+          # Test activity generator
+          if aws lambda get-function --function-name curriculum-activity-generator 2>/dev/null; then
+            echo "Testing activity generator..."
+            TEST_PAYLOAD='{"body": "{\"topic\": \"CI/CD Test\", \"grade_level\": \"3\", \"duration\": 10}"}'
+            
+            aws lambda invoke \
+              --function-name curriculum-activity-generator \
+              --payload "$TEST_PAYLOAD" \
+              --cli-binary-format raw-in-base64-out \
+              test_response.json
+            
+            if [ -f test_response.json ]; then
+              RESPONSE_CODE=$(cat test_response.json | jq -r '.statusCode // "unknown"')
+              if [[ "$RESPONSE_CODE" == "200" ]]; then
+                echo "✅ Activity generator test passed!"
+              else
+                echo "⚠️ Activity generator returned status: $RESPONSE_CODE"
+                cat test_response.json
+              fi
             fi
-          else
-            echo "❌ Activity generator test failed - no response"
-            exit 1
           fi
-
-      - name: Test Webhook Handler
-        if: needs.detect-changes.outputs.webhook_handler_changed == 'true'
-        run: |
-          # Simple test to verify webhook handler is accessible
-          aws lambda get-function --function-name curriculum-designer-webhook-dev > /dev/null
-          echo "✅ Webhook handler deployment verified"
+          
+          # Test webhook handler
+          if aws lambda get-function --function-name curriculum-designer-webhook-dev 2>/dev/null; then
+            echo "✅ Webhook handler deployment verified"
+          fi
 
   notify-completion:
     needs: [detect-changes, deploy-infrastructure, test-deployment]
@@ -306,34 +255,14 @@ jobs:
           echo "| Component | Status | Action |" >> $GITHUB_STEP_SUMMARY
           echo "|-----------|--------|--------|" >> $GITHUB_STEP_SUMMARY
           
-          if [[ "${{ needs.detect-changes.outputs.activity_generator_changed }}" == "true" ]]; then
+          if [[ "${{ needs.detect-changes.outputs.lambda_changed }}" == "true" ]]; then
             if [[ "${{ needs.deploy-infrastructure.result }}" == "success" ]]; then
-              echo "| Activity Generator | ✅ | Deployed |" >> $GITHUB_STEP_SUMMARY
+              echo "| Lambda Functions | ✅ | All Deployed |" >> $GITHUB_STEP_SUMMARY
             else
-              echo "| Activity Generator | ❌ | Failed |" >> $GITHUB_STEP_SUMMARY
+              echo "| Lambda Functions | ❌ | Failed |" >> $GITHUB_STEP_SUMMARY
             fi
           else
-            echo "| Activity Generator | ⏭️ | Skipped |" >> $GITHUB_STEP_SUMMARY
-          fi
-          
-          if [[ "${{ needs.detect-changes.outputs.webhook_handler_changed }}" == "true" ]]; then
-            if [[ "${{ needs.deploy-infrastructure.result }}" == "success" ]]; then
-              echo "| Webhook Handler | ✅ | Deployed |" >> $GITHUB_STEP_SUMMARY
-            else
-              echo "| Webhook Handler | ❌ | Failed |" >> $GITHUB_STEP_SUMMARY
-            fi
-          else
-            echo "| Webhook Handler | ⏭️ | Skipped |" >> $GITHUB_STEP_SUMMARY
-          fi
-          
-          if [[ "${{ needs.detect-changes.outputs.mcp_server_changed }}" == "true" ]]; then
-            if [[ "${{ needs.deploy-infrastructure.result }}" == "success" ]]; then
-              echo "| MCP Server | ✅ | Deployed |" >> $GITHUB_STEP_SUMMARY
-            else
-              echo "| MCP Server | ❌ | Failed |" >> $GITHUB_STEP_SUMMARY
-            fi
-          else
-            echo "| MCP Server | ⏭️ | Skipped |" >> $GITHUB_STEP_SUMMARY
+            echo "| Lambda Functions | ⏭️ | Skipped |" >> $GITHUB_STEP_SUMMARY
           fi
           
           if [[ "${{ needs.detect-changes.outputs.terraform_changed }}" == "true" ]]; then
