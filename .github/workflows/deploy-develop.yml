@@ -154,16 +154,16 @@ jobs:
             terraform apply -var-file="dev.tfvars" -auto-approve
           elif [[ "${{ needs.detect-changes.outputs.lambda_changed }}" == "true" ]]; then
             # Update Lambda functions if any Lambda changed
-            terraform apply -var-file="dev.tfvars" -target=aws_lambda_function.webhook_handler -target=aws_lambda_function.mcp_server -auto-approve
+            terraform apply -var-file="dev.tfvars" -target=aws_lambda_function.webhook_handler -target=aws_lambda_function.mcp_server -refresh=false -auto-approve
           fi
 
       # Legacy Lambda updates (for functions not yet managed by Terraform)
-      - name: Update Legacy Lambda Functions
+      - name: Update Lambda Functions via AWS CLI
         if: needs.detect-changes.outputs.lambda_changed == 'true'
         run: |
-          echo "🔄 Updating Legacy Lambda Functions..."
+          echo "🔄 Updating Lambda Functions via AWS CLI..."
           
-          # Update webhook handler via AWS CLI if exists
+          # Update webhook handler
           if aws lambda get-function --function-name curriculum-designer-webhook-dev 2>/dev/null; then
             echo "Updating webhook handler..."
             aws lambda update-function-code \
@@ -173,11 +173,20 @@ jobs:
             aws lambda wait function-updated \
               --function-name curriculum-designer-webhook-dev
               
-            aws lambda update-function-configuration \
-              --function-name curriculum-designer-webhook-dev \
-              --runtime python3.11 \
-              --handler lambda_function.handler \
-              --timeout 30
+            echo "✅ Webhook handler updated successfully"
+          fi
+          
+          # Update MCP server
+          if aws lambda get-function --function-name curriculum-designer-mcp-dev 2>/dev/null; then
+            echo "Updating MCP server..."
+            aws lambda update-function-code \
+              --function-name curriculum-designer-mcp-dev \
+              --zip-file fileb://lambda-deployments/mcp-server/deployment.zip
+              
+            aws lambda wait function-updated \
+              --function-name curriculum-designer-mcp-dev
+              
+            echo "✅ MCP server updated successfully"
           fi
 
   test-deployment:
