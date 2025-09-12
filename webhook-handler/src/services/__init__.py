@@ -9,10 +9,10 @@ from datetime import datetime
 import boto3
 from botocore.exceptions import ClientError
 
-from config import get_config
-from models import LessonPlanFeedback, FeedbackType, ActivityRequest, FrameworkData
-from clients import get_trello_client, get_openai_client, get_mcp_client
-from utils import ErrorBoundary
+from ..config import get_config
+from ..models import LessonPlanFeedback, FeedbackType, ActivityRequest, FrameworkData
+from ..clients import get_trello_client, get_openai_client, get_mcp_client
+from ..utils import ErrorBoundary
 
 logger = logging.getLogger(__name__)
 config = get_config()

@@ -6,7 +6,7 @@ from functools import lru_cache
 import boto3
 from botocore.exceptions import ClientError
 
-from config import get_config
+from ..config import get_config
 
 logger = logging.getLogger(__name__)
 config = get_config()
