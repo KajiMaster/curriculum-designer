@@ -1,0 +1,69 @@
+name: 'Build Lambda Package'
+description: 'Builds optimized Lambda deployment package'
+inputs:
+  service-name:
+    description: 'Name of the service to build'
+    required: true
+  service-path:
+    description: 'Path to the service directory'
+    required: true
+  python-version:
+    description: 'Python version'
+    required: false
+    default: '3.11'
+
+outputs:
+  package-path:
+    description: 'Path to the built Lambda package'
+    value: ${{ steps.build.outputs.package-path }}
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Build Lambda package
+      id: build
+      shell: bash
+      working-directory: ${{ inputs.service-path }}
+      run: |
+        echo "🔧 Building Lambda package for ${{ inputs.service-name }}..."
+        
+        # Create deployment directory
+        mkdir -p lambda-deployment
+        
+        # Copy source code (handle both old and new structures)
+        if [ -d "src" ]; then
+          cp -r src/* lambda-deployment/
+        else
+          cp *.py lambda-deployment/ 2>/dev/null || true
+        fi
+        
+        # Copy optimized handler if it exists
+        if [ -f "lambda_main_optimized.py" ]; then
+          cp lambda_main_optimized.py lambda-deployment/lambda_main.py
+        elif [ -f "lambda_function.py" ]; then
+          cp lambda_function.py lambda-deployment/
+        fi
+        
+        # Install dependencies
+        pip install -r requirements.txt -t lambda-deployment/
+        
+        # Optimize package size
+        find lambda-deployment/ -type d -name "__pycache__" -exec rm -rf {} + || true
+        find lambda-deployment/ -type f -name "*.pyc" -delete || true
+        find lambda-deployment/ -type d -name "*.dist-info" -exec rm -rf {} + || true
+        find lambda-deployment/ -type d -name "tests" -exec rm -rf {} + || true
+        
+        # Create deployment zip
+        cd lambda-deployment
+        zip -r ../${{ inputs.service-name }}-${{ github.sha }}.zip .
+        cd ..
+        
+        # Validate package size
+        SIZE=$(du -m ${{ inputs.service-name }}-${{ github.sha }}.zip | cut -f1)
+        echo "📦 Package size: ${SIZE}MB"
+        
+        if [ $SIZE -gt 50 ]; then
+          echo "⚠️ Warning: Package size exceeds 50MB Lambda limit"
+        fi
+        
+        echo "package-path=${{ inputs.service-path }}/${{ inputs.service-name }}-${{ github.sha }}.zip" >> $GITHUB_OUTPUT
