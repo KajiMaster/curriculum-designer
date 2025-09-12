@@ -40,9 +40,19 @@ class Config:
     
     # DynamoDB Configuration
     FRAMEWORKS_TABLE: str = os.getenv("FRAMEWORKS_TABLE", "curriculum-frameworks")
+    FEEDBACK_TABLE: str = os.getenv("FEEDBACK_TABLE", "lesson-plan-feedback")
     
     # Lambda Configuration
     ACTIVITY_GENERATOR_FUNCTION: str = os.getenv("ACTIVITY_GENERATOR_FUNCTION", "curriculum-activity-generator")
+    MCP_SERVICE_FUNCTION: str = os.getenv("MCP_SERVICE_FUNCTION", "curriculum-mcp-service")
+    
+    # MCP Service Configuration
+    MCP_SERVICE_BASE_URL: str = os.getenv("MCP_SERVICE_BASE_URL", "https://api.mcp.example.com")
+    MCP_API_KEY: str = os.getenv("MCP_API_KEY", "")
+    
+    # Retry Configuration
+    MAX_RETRIES: int = int(os.getenv("MAX_RETRIES", "3"))
+    TIMEOUT_SECONDS: int = int(os.getenv("TIMEOUT_SECONDS", "30"))
     
     # Logging Configuration
     LOG_LEVEL: str = os.getenv("LOG_LEVEL", "INFO")
