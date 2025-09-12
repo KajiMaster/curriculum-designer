@@ -97,7 +97,7 @@ jobs:
     name: Build & Deploy
     runs-on: ubuntu-latest
     needs: quality-tests
-    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop'
+    if: github.ref == 'refs/heads/develop'
     
     steps:
       - name: Checkout
@@ -155,26 +155,7 @@ jobs:
             echo "ℹ️ MCP dev function does not exist, skipping deployment"
           fi
 
-      - name: Deploy to Production
-        if: github.ref == 'refs/heads/main'
-        environment: production
-        run: |
-          echo "🚨 PRODUCTION - Deploying MCP server..."
-          
-          if aws lambda get-function --function-name curriculum-designer-mcp-prod 2>/dev/null; then
-            aws lambda update-function-code \
-              --function-name curriculum-designer-mcp-prod \
-              --zip-file fileb://${{ steps.path.outputs.mcp-path }}/${{ env.SERVICE_NAME }}-${{ github.sha }}.zip \
-              --region ${{ env.AWS_REGION }}
-              
-            aws lambda wait function-updated \
-              --function-name curriculum-designer-mcp-prod \
-              --region ${{ env.AWS_REGION }}
-              
-            echo "✅ MCP server prod updated successfully"
-          else
-            echo "ℹ️ MCP prod function does not exist, skipping deployment"
-          fi
+      # Production deployment removed - focusing on dev for now
 
       - name: Test deployment
         run: |
