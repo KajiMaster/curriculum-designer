@@ -13,9 +13,14 @@ on:
       - '.github/workflows/ci-cd.yml'
 
 env:
-  PYTHON_VERSION: '3.13'
+  PYTHON_VERSION: '3.11'
   AWS_REGION: us-east-1
   LAMBDA_FUNCTION_NAME: curriculum-webhook-handler
+
+permissions:
+  id-token: write
+  contents: read
+  pull-requests: write
 
 jobs:
   # ============================================================================
@@ -294,7 +299,7 @@ jobs:
       - name: ⚙️ Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME_DEV }}
+          role-to-assume: arn:aws:iam::123324351829:role/curriculum-designer-github-actions
           role-session-name: GitHubActions-Deploy-Dev
           aws-region: ${{ env.AWS_REGION }}
 
@@ -384,7 +389,7 @@ jobs:
       - name: ⚙️ Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME_PROD }}
+          role-to-assume: arn:aws:iam::123324351829:role/curriculum-designer-github-actions
           role-session-name: GitHubActions-Deploy-Prod
           aws-region: ${{ env.AWS_REGION }}
 
