@@ -19,8 +19,8 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 # Import main components
-from handlers import WebhookHandler
-from config import get_config
+from .handlers import WebhookHandler
+from .config import get_config
 
 # Initialize configuration on module import
 config = get_config()

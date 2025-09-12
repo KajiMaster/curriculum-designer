@@ -4,11 +4,11 @@ import logging
 import json
 from typing import Dict, Any, Optional
 
-from config import get_config
-from models import WebhookPayload, LambdaResponse, ActionType
-from clients import get_trello_client, cleanup_clients
-from services import get_ai_service, get_feedback_service, get_framework_service, get_activity_service
-from utils import ErrorBoundary, get_trello_api_key, get_trello_token, get_openai_api_key
+from ..config import get_config
+from ..models import WebhookPayload, LambdaResponse, ActionType
+from ..clients import get_trello_client, cleanup_clients
+from ..services import get_ai_service, get_feedback_service, get_framework_service, get_activity_service
+from ..utils import ErrorBoundary, get_trello_api_key, get_trello_token, get_openai_api_key
 
 logger = logging.getLogger(__name__)
 config = get_config()

@@ -7,9 +7,9 @@ from functools import lru_cache
 import httpx
 import json
 
-from config import get_config
-from models import Card, LessonPlanFeedback, ActivityRequest
-from utils import get_trello_api_key, get_trello_token, get_openai_api_key, ErrorBoundary
+from ..config import get_config
+from ..models import Card, LessonPlanFeedback, ActivityRequest
+from ..utils import get_trello_api_key, get_trello_token, get_openai_api_key, ErrorBoundary
 
 logger = logging.getLogger(__name__)
 config = get_config()
