@@ -79,7 +79,7 @@ class LessonPlanFeedback(BaseModel):
     rating: Optional[int] = Field(None, ge=1, le=5)
     source: str
     
-    @validator('rating')
+    @validator('rating', always=True)
     def rating_required_for_rating_type(cls, v, values):
         if values.get('feedback_type') == FeedbackType.RATING and v is None:
             raise ValueError('Rating value required for rating feedback type')

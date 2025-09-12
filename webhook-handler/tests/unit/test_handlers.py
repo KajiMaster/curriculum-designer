@@ -17,7 +17,7 @@ class TestCommentHandler:
         with patch('src.handlers.get_trello_client', return_value=mock_trello_client), \
              patch('src.handlers.get_ai_service') as mock_ai_service:
             
-            mock_ai_service.return_value.get_response.return_value = "AI response"
+            mock_ai_service.return_value.get_response = AsyncMock(return_value="AI response")
             
             handler = CommentHandler()
             
@@ -96,7 +96,7 @@ class TestWebhookHandler:
                     "type": "commentCard",
                     "data": {
                         "text": "@ai hello",
-                        "card": {"id": "card123"}
+                        "card": {"id": "card123", "name": "Test Card"}
                     }
                 }
             })
