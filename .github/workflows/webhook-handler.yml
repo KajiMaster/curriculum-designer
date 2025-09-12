@@ -2,12 +2,12 @@ name: Webhook Handler CI/CD
 
 on:
   push:
-    branches: [main, develop]
+    branches: [main, develop, test-new-cicd]
     paths:
       - 'webhook-handler/**'
       - '.github/workflows/webhook-handler.yml'
   pull_request:
-    branches: [main, develop]
+    branches: [main, develop, test-new-cicd]
     paths:
       - 'webhook-handler/**'
 
