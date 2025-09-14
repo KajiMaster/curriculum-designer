@@ -627,14 +627,14 @@ async def handle_activity_command(ai_request: str, card_details: dict, card_id: 
     
     try:
         # Parse parameters from request
-        # Format: @ai activity [topic] [grade_level] [duration] [activity_type]
-        # Example: @ai activity "food and drinks" 3 15 preference_choice
+        # Format: @ai activity [topic] [esl_level] [duration] [activity_type]
+        # Example: @ai activity "food and drinks" intermediate 15 preference_choice
         
         # Extract parameters using regex
         # Look for quoted strings first (for multi-word topics)
         topic_match = re.search(r'"([^"]+)"', ai_request) or re.search(r'topic[:\s]+([^\s,]+)', ai_request)
-        grade_match = re.search(r'grade[:\s]+([^\s,]+)', ai_request) or re.search(r'\b([K1-9]|1[0-2])\b', ai_request)
-        duration_match = re.search(r'duration[:\s]+(\d+)', ai_request) or re.search(r'(\d+)\s*min', ai_request)
+        level_match = re.search(r'level[:\s]+([^\s,]+)', ai_request) or re.search(r'\b(beginner|elementary|intermediate|upper-intermediate|advanced)\b', ai_request, re.IGNORECASE)
+        duration_match = re.search(r'duration[:\s]+(\d+)', ai_request) or re.search(r'(\d+)\s*min', ai_request) or re.search(r'\b(\d+)\b', ai_request)
         type_match = re.search(r'type[:\s]+([^\s,]+)', ai_request) or re.search(r'(preference_choice|vocabulary_builder|compare_contrast|sequence_builder|story_response|interactive_game|discovery_exploration)', ai_request)
         
         # Get topic from card if not specified
@@ -644,21 +644,22 @@ async def handle_activity_command(ai_request: str, card_details: dict, card_id: 
             topic = topic_match.group(1)
         
         # Default values
-        grade_level = grade_match.group(1) if grade_match else "3"
+        esl_level = level_match.group(1) if level_match else "intermediate"
         duration = int(duration_match.group(1)) if duration_match else 15
         activity_type = type_match.group(1) if type_match else None
         
         # Get context from card description
         context = card_details.get('desc', '')[:500] if card_details.get('desc') else None
         
-        await trello.add_comment(card_id, f"🎯 **Generating Activity**\n\n📚 Topic: {topic}\n📊 Grade Level: {grade_level}\n⏱️ Duration: {duration} minutes\n🎨 Type: {activity_type or 'Auto-selected'}")
+        await trello.add_comment(card_id, f"🎯 **Generating Activity**\n\n📚 Topic: {topic}\n📊 ESL Level: {esl_level}\n⏱️ Duration: {duration} minutes\n🎨 Type: {activity_type or 'Auto-selected'}")
         
         # Call activity generator Lambda
         lambda_client = boto3.client('lambda', region_name='us-east-1')
         
         payload = {
             'topic': topic,
-            'grade_level': grade_level,
+            'student_age': 'adult',  # For adult ESL learners
+            'esl_level': esl_level,
             'duration': duration
         }
         
@@ -765,7 +766,7 @@ async def handle_activity_command(ai_request: str, card_details: dict, card_id: 
         print(f"Error in activity generation: {e}")
         import traceback
         traceback.print_exc()
-        await trello.add_comment(card_id, f"❌ **Error generating activity:** {str(e)}\n\nPlease check your parameters and try again.\n\n**Usage:** `@ai activity \"topic\" grade_level duration [type]`\n\n**Example:** `@ai activity \"food and drinks\" 3 15 preference_choice`")
+        await trello.add_comment(card_id, f"❌ **Error generating activity:** {str(e)}\n\nPlease check your parameters and try again.\n\n**Usage:** `@ai activity \"topic\" esl_level duration [type]`\n\n**Example:** `@ai activity \"food and drinks\" intermediate 15 preference_choice`\n\n**ESL Levels:** beginner, elementary, intermediate, upper-intermediate, advanced")
 
 
 async def handle_framework_command(ai_request: str, card_details: dict, card_id: str):

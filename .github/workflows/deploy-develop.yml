@@ -250,7 +250,7 @@ jobs:
           # Test activity generator
           if aws lambda get-function --function-name curriculum-activity-generator 2>/dev/null; then
             echo "Testing activity generator..."
-            TEST_PAYLOAD='{"body": "{\"topic\": \"CI/CD Test\", \"grade_level\": \"3\", \"duration\": 10}"}'
+            TEST_PAYLOAD='{"body": "{\"topic\": \"CI/CD Test\", \"esl_level\": \"intermediate\", \"duration\": 10}"}'
             
             aws lambda invoke \
               --function-name curriculum-activity-generator \

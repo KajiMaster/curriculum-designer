@@ -102,7 +102,7 @@ class CommentHandler:
             
             await self.trello_client.add_comment(
                 card_id,
-                f"🎯 **Generating Activity**\n\n📚 Topic: {request.topic}\n📊 Grade Level: {request.grade_level}\n⏱️ Duration: {request.duration} minutes\n🎨 Type: {request.activity_type or 'Auto-selected'}"
+                f"🎯 **Generating Activity**\n\n📚 Topic: {request.topic}\n📊 ESL Level: {request.esl_level}\n⏱️ Duration: {request.duration} minutes\n🎨 Type: {request.activity_type or 'Auto-selected'}"
             )
             
             # Generate the activity
@@ -118,7 +118,7 @@ class CommentHandler:
                 
         except Exception as e:
             logger.error(f"Error in activity generation: {e}")
-            error_comment = f"❌ **Error generating activity:** {str(e)}\n\nPlease check your parameters and try again.\n\n**Usage:** `@ai activity \"topic\" grade_level duration [type]`\n\n**Example:** `@ai activity \"food and drinks\" 3 15 preference_choice`"
+            error_comment = f"❌ **Error generating activity:** {str(e)}\n\nPlease check your parameters and try again.\n\n**Usage:** `@ai activity \"topic\" esl_level duration [type]`\n\n**Example:** `@ai activity \"coffee farming\" intermediate 15 discussion`"
             await self.trello_client.add_comment(card_id, error_comment)
     
     async def _handle_framework_command(self, ai_request: str, card_details: Dict[str, Any], card_id: str) -> None:

@@ -68,7 +68,7 @@ def test_activity_request_validation():
     """Test activity request validation."""
     request_data = {
         "topic": "Food and Drinks",
-        "grade_level": "3",
+        "esl_level": "intermediate",
         "duration": 20,
         "activity_type": "preference_choice"
     }

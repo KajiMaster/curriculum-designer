@@ -111,7 +111,7 @@ class TestModelsExtended:
         """Test ActivityRequest default values."""
         request = ActivityRequest(topic="Math")
         assert request.topic == "Math"
-        assert request.grade_level == "3"
+        assert request.esl_level == "intermediate"
         assert request.duration == 15
         assert request.activity_type is None
         assert request.context is None

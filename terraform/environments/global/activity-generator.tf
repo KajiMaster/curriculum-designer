@@ -1,3 +1,17 @@
+# SQS Dead Letter Queue for failed activity generation
+resource "aws_sqs_queue" "activity_generator_dlq" {
+  name = "curriculum-activity-generator-dlq"
+  
+  # Retain failed messages for 14 days
+  message_retention_seconds = 1209600
+  
+  tags = {
+    Name        = "curriculum-activity-generator-dlq"
+    Environment = "global"
+    Project     = "curriculum-designer"
+  }
+}
+
 # DynamoDB Table for Activity Storage
 resource "aws_dynamodb_table" "curriculum_activities" {
   name         = "curriculum-activities"
@@ -15,7 +29,7 @@ resource "aws_dynamodb_table" "curriculum_activities" {
   }
 
   attribute {
-    name = "grade_level"
+    name = "esl_level"
     type = "S"
   }
 
@@ -31,8 +45,8 @@ resource "aws_dynamodb_table" "curriculum_activities" {
   }
 
   global_secondary_index {
-    name            = "grade-level-index"
-    hash_key        = "grade_level"
+    name            = "esl-level-index"
+    hash_key        = "esl_level"
     range_key       = "topic"
     projection_type = "ALL"
   }
@@ -42,6 +56,17 @@ resource "aws_dynamodb_table" "curriculum_activities" {
     hash_key        = "activity_type"
     range_key       = "topic"
     projection_type = "ALL"
+  }
+
+  # TTL attribute for automatic cleanup (e.g., remove activities after 1 year)
+  ttl {
+    attribute_name = "expires_at"
+    enabled        = true
+  }
+
+  # Enable point-in-time recovery for data protection
+  point_in_time_recovery {
+    enabled = true
   }
 
   tags = {
@@ -58,12 +83,25 @@ resource "aws_lambda_function" "activity_generator" {
   role         = aws_iam_role.activity_generator_role.arn
   handler      = "lambda_function.handler"
   runtime      = "python3.11"
-  timeout      = 60
-  memory_size  = 512
+  timeout      = 90  # Allow more time for complex activities
+  memory_size  = 1024  # Increased memory for better performance with AI prompts
 
   layers = [
     data.aws_lambda_layer_version.httpx_dependencies.arn
   ]
+
+  # Enable tracing for performance monitoring
+  tracing_config {
+    mode = "Active"
+  }
+
+  # Dead letter queue for failed invocations
+  dead_letter_config {
+    target_arn = aws_sqs_queue.activity_generator_dlq.arn
+  }
+
+  # Reserved concurrency to prevent cost overrun
+  reserved_concurrency = 5
 
   environment {
     variables = {
@@ -133,6 +171,21 @@ resource "aws_iam_role_policy" "activity_generator_policy" {
         Resource = [
           "arn:aws:ssm:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:parameter/curriculum-designer/*"
         ]
+      },
+      {
+        Effect = "Allow"
+        Action = [
+          "xray:PutTraceSegments",
+          "xray:PutTelemetryRecords"
+        ]
+        Resource = "*"
+      },
+      {
+        Effect = "Allow"
+        Action = [
+          "sqs:SendMessage"
+        ]
+        Resource = aws_sqs_queue.activity_generator_dlq.arn
       }
     ]
   })
@@ -199,4 +252,51 @@ output "activity_generator_function_arn" {
 
 output "activities_table_name" {
   value = aws_dynamodb_table.curriculum_activities.name
+}
+
+# CloudWatch Alarms for monitoring
+resource "aws_cloudwatch_metric_alarm" "activity_generator_errors" {
+  alarm_name          = "curriculum-activity-generator-errors"
+  comparison_operator = "GreaterThanThreshold"
+  evaluation_periods  = "2"
+  metric_name         = "Errors"
+  namespace           = "AWS/Lambda"
+  period              = "60"
+  statistic           = "Sum"
+  threshold           = "5"
+  alarm_description   = "This metric monitors activity generator errors"
+  alarm_actions       = []  # Add SNS topic ARN for notifications if needed
+
+  dimensions = {
+    FunctionName = aws_lambda_function.activity_generator.function_name
+  }
+
+  tags = {
+    Name        = "curriculum-activity-generator-errors"
+    Environment = "global"
+    Project     = "curriculum-designer"
+  }
+}
+
+resource "aws_cloudwatch_metric_alarm" "activity_generator_duration" {
+  alarm_name          = "curriculum-activity-generator-duration"
+  comparison_operator = "GreaterThanThreshold"
+  evaluation_periods  = "2"
+  metric_name         = "Duration"
+  namespace           = "AWS/Lambda"
+  period              = "60"
+  statistic           = "Average"
+  threshold           = "75000"  # 75 seconds (close to timeout)
+  alarm_description   = "This metric monitors activity generator duration"
+  alarm_actions       = []
+
+  dimensions = {
+    FunctionName = aws_lambda_function.activity_generator.function_name
+  }
+
+  tags = {
+    Name        = "curriculum-activity-generator-duration"
+    Environment = "global"
+    Project     = "curriculum-designer"
+  }
 }

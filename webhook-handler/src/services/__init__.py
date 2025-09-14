@@ -353,7 +353,7 @@ class ActivityService:
         
         return ActivityRequest(
             topic=topic,
-            grade_level=level_match.group(1) if level_match else "intermediate",
+            esl_level=level_match.group(1) if level_match else "intermediate",
             duration=int(duration_match.group(1)) if duration_match else 15,
             activity_type=type_match.group(1) if type_match else None,
             context=card_details.get('desc', '')[:500] if card_details.get('desc') else None

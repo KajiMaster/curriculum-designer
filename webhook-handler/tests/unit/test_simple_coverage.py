@@ -211,11 +211,11 @@ class TestServiceMethods:
             service = ActivityService()
             
             request = service.parse_activity_request(
-                'generate "Science Lab" grade:4',
+                'generate "Science Lab" esl_level:intermediate',
                 {"name": "Card"}
             )
             assert request.topic == "Science Lab"
-            assert request.grade_level == "4"
+            assert request.esl_level == "intermediate"
     
     def test_framework_service_prompt(self):
         """Test framework variant prompt generation."""

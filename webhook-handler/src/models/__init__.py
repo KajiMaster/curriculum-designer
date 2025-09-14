@@ -89,7 +89,7 @@ class LessonPlanFeedback(BaseModel):
 class ActivityRequest(BaseModel):
     """Request for activity generation."""
     topic: str
-    grade_level: str = "intermediate"  # ESL level: beginner, elementary, intermediate, upper-intermediate, advanced
+    esl_level: str = "intermediate"  # ESL level: beginner, elementary, intermediate, upper-intermediate, advanced
     duration: int = Field(15, ge=5, le=120)
     activity_type: Optional[str] = None
     context: Optional[str] = Field(None, max_length=500)

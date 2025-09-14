@@ -163,7 +163,7 @@ jobs:
               "activity-generator")
                 FUNCTION_NAME="curriculum-activity-generator"
                 if aws lambda get-function --function-name $FUNCTION_NAME 2>/dev/null; then
-                  TEST_PAYLOAD='{"body": "{\"topic\": \"Test\", \"grade_level\": \"3\", \"duration\": 10}"}'
+                  TEST_PAYLOAD='{"body": "{\"topic\": \"Test\", \"esl_level\": \"intermediate\", \"duration\": 10}"}'
                   aws lambda invoke \
                     --function-name $FUNCTION_NAME \
                     --payload "$TEST_PAYLOAD" \

@@ -26,7 +26,8 @@ class ActivityGenerator:
     async def generate_activity(self, topic: str, duration: int, 
                                activity_type: Optional[str] = None,
                                context: Optional[str] = None,
-                               student_age: Optional[str] = None) -> Dict:
+                               student_age: Optional[str] = None,
+                               esl_level: Optional[str] = None) -> Dict:
         """Generate a complete, tier_3 quality student-ready activity."""
         
         # Select activity type based on parameters or choose intelligently
@@ -35,9 +36,9 @@ class ActivityGenerator:
         
         # Generate activity using selected template - ALWAYS aiming for tier_3 quality
         if activity_type in self.templates:
-            activity = await self.templates[activity_type](topic, duration, context, student_age)
+            activity = await self.templates[activity_type](topic, duration, context, student_age, esl_level)
         else:
-            activity = await self.generate_custom_activity(topic, duration, activity_type, context, student_age)
+            activity = await self.generate_custom_activity(topic, duration, activity_type, context, student_age, esl_level)
         
         # Add metadata with quality tracking
         activity['metadata'] = {
@@ -45,7 +46,8 @@ class ActivityGenerator:
             'topic': topic,
             'duration': f"{duration} minutes",
             'activity_type': activity_type,
-            'student_age': student_age or 'unspecified',
+            'student_age': student_age or 'adult',
+            'esl_level': esl_level or 'intermediate',
             'energy_level': self.determine_energy_level(activity_type),
             'cognitive_stage': self.determine_cognitive_stage(activity_type),
             'quality_status': 'pending_evaluation',  # Will be evaluated by humans
@@ -102,13 +104,13 @@ class ActivityGenerator:
         return "practice"
     
     async def generate_preference_choice(self, topic: str, duration: int, 
-                                        context: Optional[str], student_age: Optional[str]) -> Dict:
+                                        context: Optional[str], student_age: Optional[str], esl_level: Optional[str]) -> Dict:
         """Generate a tier_3 preference choice activity like the example."""
         
-        age_note = f" (content adapted for {student_age} learners)" if student_age else ""
+        level_note = f" (content adapted for {esl_level or 'intermediate'} ESL learners)" if esl_level else " (content adapted for adult ESL learners)"
         
         prompt = f"""
-        Create a single, focused preference choice ACTIVITY{age_note} about {topic}.
+        Create a single, focused preference choice ACTIVITY{level_note} about {topic}.
         Duration: {duration} minutes
         Context: {context or 'Online 1-on-1 teaching'}
         
@@ -162,13 +164,13 @@ class ActivityGenerator:
         return json.loads(response)
     
     async def generate_vocabulary_builder(self, topic: str, duration: int,
-                                         context: Optional[str], student_age: Optional[str]) -> Dict:
+                                         context: Optional[str], student_age: Optional[str], esl_level: Optional[str]) -> Dict:
         """Generate a tier_3 vocabulary building activity."""
         
-        age_note = f" (content adapted for {student_age} learners)" if student_age else ""
+        level_note = f" (content adapted for {esl_level or 'intermediate'} ESL learners)" if esl_level else " (content adapted for adult ESL learners)"
         
         prompt = f"""
-        Create a complete, tier_3 quality vocabulary building activity{age_note}.
+        Create a complete, tier_3 quality vocabulary building activity{level_note}.
         Topic: {topic}
         Duration: {duration} minutes
         Context: {context or 'Online 1-on-1 teaching'}
@@ -202,13 +204,13 @@ class ActivityGenerator:
         return json.loads(response)
     
     async def generate_compare_contrast(self, topic: str, duration: int,
-                                       context: Optional[str], student_age: Optional[str]) -> Dict:
+                                       context: Optional[str], student_age: Optional[str], esl_level: Optional[str]) -> Dict:
         """Generate a tier_3 compare and contrast activity."""
         
-        age_note = f" (content adapted for {student_age} learners)" if student_age else ""
+        level_note = f" (content adapted for {esl_level or 'intermediate'} ESL learners)" if esl_level else " (content adapted for adult ESL learners)"
         
         prompt = f"""
-        Create a complete, tier_3 quality compare and contrast activity{age_note}.
+        Create a complete, tier_3 quality compare and contrast activity{level_note}.
         Topic: {topic}
         Duration: {duration} minutes
         Context: {context or 'Online 1-on-1 teaching'}
@@ -230,13 +232,13 @@ class ActivityGenerator:
         return json.loads(response)
     
     async def generate_sequence_builder(self, topic: str, duration: int,
-                                       context: Optional[str], student_age: Optional[str]) -> Dict:
+                                       context: Optional[str], student_age: Optional[str], esl_level: Optional[str]) -> Dict:
         """Generate a tier_3 sequencing activity."""
         
-        age_note = f" (content adapted for {student_age} learners)" if student_age else ""
+        level_note = f" (content adapted for {esl_level or 'intermediate'} ESL learners)" if esl_level else " (content adapted for adult ESL learners)"
         
         prompt = f"""
-        Create a tier_3 quality step-by-step sequencing activity{age_note}.
+        Create a tier_3 quality step-by-step sequencing activity{level_note}.
         Topic: {topic}
         Duration: {duration} minutes
         Context: {context or 'Online 1-on-1 teaching'}
@@ -258,13 +260,13 @@ class ActivityGenerator:
         return json.loads(response)
     
     async def generate_story_response(self, topic: str, duration: int,
-                                     context: Optional[str], student_age: Optional[str]) -> Dict:
+                                     context: Optional[str], student_age: Optional[str], esl_level: Optional[str]) -> Dict:
         """Generate a tier_3 story response activity."""
         
-        age_note = f" (content adapted for {student_age} learners)" if student_age else ""
+        level_note = f" (content adapted for {esl_level or 'intermediate'} ESL learners)" if esl_level else " (content adapted for adult ESL learners)"
         
         prompt = f"""
-        Create a tier_3 quality story-based response activity{age_note}.
+        Create a tier_3 quality story-based response activity{level_note}.
         Topic: {topic}
         Duration: {duration} minutes
         Context: {context or 'Online 1-on-1 teaching'}
@@ -285,13 +287,13 @@ class ActivityGenerator:
         return json.loads(response)
     
     async def generate_interactive_game(self, topic: str, duration: int,
-                                       context: Optional[str], student_age: Optional[str]) -> Dict:
+                                       context: Optional[str], student_age: Optional[str], esl_level: Optional[str]) -> Dict:
         """Generate a tier_3 interactive game activity."""
         
-        age_note = f" (content adapted for {student_age} players)" if student_age else ""
+        level_note = f" (content adapted for {esl_level or 'intermediate'} ESL players)" if esl_level else " (content adapted for adult ESL players)"
         
         prompt = f"""
-        Create a tier_3 quality interactive, game-based learning activity{age_note}.
+        Create a tier_3 quality interactive, game-based learning activity{level_note}.
         Topic: {topic}
         Duration: {duration} minutes
         Context: {context or 'Online 1-on-1 teaching'}
@@ -316,13 +318,13 @@ class ActivityGenerator:
         return json.loads(response)
     
     async def generate_discovery_exploration(self, topic: str, duration: int,
-                                            context: Optional[str], student_age: Optional[str]) -> Dict:
+                                            context: Optional[str], student_age: Optional[str], esl_level: Optional[str]) -> Dict:
         """Generate a tier_3 discovery/exploration activity."""
         
-        age_note = f" (content adapted for {student_age} explorers)" if student_age else ""
+        level_note = f" (content adapted for {esl_level or 'intermediate'} ESL explorers)" if esl_level else " (content adapted for adult ESL explorers)"
         
         prompt = f"""
-        Create a tier_3 quality discovery and exploration activity{age_note}.
+        Create a tier_3 quality discovery and exploration activity{level_note}.
         Topic: {topic}
         Duration: {duration} minutes
         Context: {context or 'Online 1-on-1 teaching'}
@@ -344,13 +346,13 @@ class ActivityGenerator:
     
     async def generate_custom_activity(self, topic: str, duration: int,
                                       activity_type: str, context: Optional[str],
-                                      student_age: Optional[str]) -> Dict:
+                                      student_age: Optional[str], esl_level: Optional[str]) -> Dict:
         """Generate a tier_3 custom activity based on specific type request."""
         
-        age_note = f" (content adapted for {student_age} learners)" if student_age else ""
+        level_note = f" (content adapted for {esl_level or 'intermediate'} ESL learners)" if esl_level else " (content adapted for adult ESL learners)"
         
         prompt = f"""
-        Create a complete, tier_3 quality {activity_type} activity{age_note}.
+        Create a complete, tier_3 quality {activity_type} activity{level_note}.
         Topic: {topic}
         Duration: {duration} minutes
         Context: {context or 'Online 1-on-1 teaching'}
@@ -402,15 +404,20 @@ async def save_activity(activity: Dict) -> str:
     """Save activity to DynamoDB for reuse and quality tracking."""
     activity_id = f"act_{datetime.now().strftime('%Y%m%d%H%M%S')}_{random.randint(1000, 9999)}"
     
+    # Set TTL for 1 year from now (31536000 seconds)
+    expires_at = int(datetime.now().timestamp()) + 31536000
+    
     item = {
         'activity_id': activity_id,
         'created_at': datetime.now().isoformat(),
+        'expires_at': expires_at,  # TTL for automatic cleanup
         'activity_data': activity,
         'usage_count': 0,
         'quality_rating': None,  # For human quality evaluation
         'teacher_feedback': None,  # For teacher feedback collection
         'topic': activity['metadata']['topic'],
         'student_age': activity['metadata']['student_age'],
+        'esl_level': activity['metadata']['esl_level'],  # Use ESL level instead of grade level
         'activity_type': activity['metadata']['activity_type'],
         'duration': activity['metadata']['duration'],
         'quality_status': activity['metadata']['quality_status'],
@@ -435,6 +442,7 @@ async def async_handler(event, context):
     activity_type = body.get('activity_type')
     context_info = body.get('context')
     student_age = body.get('student_age')  # Optional for age-appropriate content
+    esl_level = body.get('esl_level')  # ESL level: beginner, elementary, intermediate, upper-intermediate, advanced
     
     if not topic:
         return {
@@ -450,7 +458,8 @@ async def async_handler(event, context):
             duration=duration,
             activity_type=activity_type,
             context=context_info,
-            student_age=student_age
+            student_age=student_age,
+            esl_level=esl_level
         )
         
         # Save to database
