@@ -101,7 +101,7 @@ resource "aws_lambda_function" "activity_generator" {
   }
 
   # Reserved concurrency to prevent cost overrun
-  reserved_concurrency = 5
+  reserved_concurrent_executions = 5
 
   environment {
     variables = {

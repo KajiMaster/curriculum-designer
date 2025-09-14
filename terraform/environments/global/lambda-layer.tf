@@ -11,7 +11,7 @@ resource "aws_lambda_layer_version" "webhook_dependencies" {
   compatible_runtimes = ["python3.11"]
   
   # Only create if the zip file exists
-  source_code_hash = fileexists("${path.module}/../../../webhook-handler/dependencies-layer.zip") ? filebase64sha256("${path.module}/../../../webhook-handler/dependencies-layer.zip") : null
+  source_code_hash = fileexists("${path.module}/../../../lambda-layers/webhook-dependencies.zip") ? filebase64sha256("${path.module}/../../../lambda-layers/webhook-dependencies.zip") : null
 }
 
 # Lambda layer for MCP server dependencies  
@@ -23,7 +23,7 @@ resource "aws_lambda_layer_version" "mcp_dependencies" {
   compatible_runtimes = ["python3.11"]
   
   # Only create if the zip file exists
-  source_code_hash = fileexists("${path.module}/../../../mcp-server/mcp-dependencies-layer.zip") ? filebase64sha256("${path.module}/../../../mcp-server/mcp-dependencies-layer.zip") : null
+  source_code_hash = fileexists("${path.module}/../../../lambda-layers/mcp-dependencies.zip") ? filebase64sha256("${path.module}/../../../lambda-layers/mcp-dependencies.zip") : null
 }
 
 # Lambda layer for HTTPX with asyncio support (for activity generator)
@@ -35,8 +35,11 @@ resource "aws_lambda_layer_version" "httpx_dependencies" {
   compatible_runtimes = ["python3.11"]
   
   # Only create if the zip file exists
-  source_code_hash = fileexists("${path.module}/../../../lambda_layer_fix/unified_layer.zip") ? filebase64sha256("${path.module}/../../../lambda_layer_fix/unified_layer.zip") : null
+  source_code_hash = fileexists("${path.module}/../../../lambda-layers/httpx-dependencies.zip") ? filebase64sha256("${path.module}/../../../lambda-layers/httpx-dependencies.zip") : null
 }
+
+# Note: unified dependencies layer managed separately - it already exists
+# The multi-env configuration references it via data source
 
 # Output layer ARNs for use in other environments
 output "webhook_dependencies_layer_arn" {
@@ -53,3 +56,5 @@ output "httpx_dependencies_layer_arn" {
   value = aws_lambda_layer_version.httpx_dependencies.arn
   description = "ARN of the HTTPX dependencies Lambda layer"
 }
+
+# unified_dependencies layer output removed - managed separately
