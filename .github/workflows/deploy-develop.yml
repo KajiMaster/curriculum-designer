@@ -180,22 +180,14 @@ jobs:
       # Note: Global infrastructure deployment removed from CI/CD
       # Deploy manually when needed for global resources like activity generator
 
-      # Deploy Multi-Environment Infrastructure (Webhook, MCP)
-      - name: Deploy Multi-Environment Infrastructure  
+      # Skip Terraform deployment temporarily due to resource state conflicts
+      # Deploy via AWS CLI instead which works reliably
+      - name: Skip Terraform (using AWS CLI instead)
         if: needs.detect-changes.outputs.terraform_multi_env_changed == 'true' || needs.detect-changes.outputs.lambda_changed == 'true'
         run: |
-          echo "🏗️ Deploying Multi-Environment Infrastructure..."
-          cd terraform/environments/multi-env
-          terraform init
-          
-          if [[ "${{ needs.detect-changes.outputs.terraform_multi_env_changed }}" == "true" ]]; then
-            # Apply all changes if terraform files changed
-            terraform apply --var-file=dev.tfvars -auto-approve
-          elif [[ "${{ needs.detect-changes.outputs.lambda_changed }}" == "true" ]]; then
-            # Refresh and update Lambda functions if any Lambda changed
-            terraform refresh --var-file=dev.tfvars
-            terraform apply --var-file=dev.tfvars -auto-approve
-          fi
+          echo "⚠️  Skipping Terraform deployment due to state conflicts"
+          echo "🔄 Using AWS CLI for Lambda deployments instead"
+          echo "📝 TODO: Fix Terraform state import issues"
 
       # Fallback Lambda updates via AWS CLI
       - name: Update Lambda Functions via AWS CLI
