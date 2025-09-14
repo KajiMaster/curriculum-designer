@@ -22,37 +22,37 @@ Test these commands in your Trello board to verify the webhook handler is workin
 
 3. **Simple Activity**
    ```
-   @ai activity "Colors and Shapes" grade:2 duration:15
+   @ai activity "Food and Drinks" 20 minutes
    ```
    **Expected**: 
    - Acknowledgment comment with parameters
-   - Detailed activity with materials, steps, objectives
+   - Detailed activity with materials, steps, objectives for adult learners
 
 4. **Activity with Type**
    ```
-   @ai generate activity "Animals" grade:3 duration:20 type:game
+   @ai generate activity "Job Interviews" 30 minutes type:role-play
    ```
-   **Expected**: Game-based learning activity for animals
+   **Expected**: Role-play activity for adult learners practicing job interviews
 
-5. **Complex Activity Request**
+5. **Business English Activity**
    ```
-   @ai activity "Food and Drinks" grade:4 duration:30 type:preference_choice
+   @ai activity "Workplace Communication" 25 minutes type:business
    ```
-   **Expected**: Preference/opinion-based activity about food
+   **Expected**: Professional communication activity for working adults
 
 ### 📚 Lesson Plan Tests
 
 6. **Basic Lesson Plan**
    ```
-   @ai create lesson plan for beginner students focusing on greetings for 45 minutes
+   @ai create lesson plan for beginner students focusing on introductions and greetings for 45 minutes
    ```
-   **Expected**: Complete lesson plan with warm-up, main content, practice, wrap-up
+   **Expected**: Complete lesson plan for adult beginners with warm-up, main content, practice, wrap-up
 
-7. **Advanced Lesson Plan**
+7. **Business English Lesson Plan**
    ```
-   @ai lesson plan for intermediate students grammar focus 60 minutes
+   @ai lesson plan for intermediate students business email writing 60 minutes
    ```
-   **Expected**: Grammar-focused lesson with exercises
+   **Expected**: Professional communication lesson with practical exercises
 
 ### 🔍 Analysis Tests
 
@@ -132,9 +132,9 @@ Test these commands in your Trello board to verify the webhook handler is workin
 
 19. **Multi-parameter Activity**
     ```
-    @ai generate activity "Technology and Social Media" grade:7 duration:25 type:discussion
+    @ai generate activity "Technology and Social Media" 25 minutes type:discussion
     ```
-    **Expected**: Discussion-based activity for older students
+    **Expected**: Discussion-based activity for adult learners about technology
 
 20. **Context-Aware Request**
     Create a card titled "Verb Conjugation Practice" with description, then:

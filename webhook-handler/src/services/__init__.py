@@ -344,7 +344,7 @@ class ActivityService:
         """Parse activity request from AI command."""
         # Extract parameters using regex
         topic_match = re.search(r'"([^"]+)"', ai_request) or re.search(r'topic[:\s]+([^\s,]+)', ai_request)
-        grade_match = re.search(r'grade[:\s]+([^\s,]+)', ai_request) or re.search(r'\b([K1-9]|1[0-2])\b', ai_request)
+        level_match = re.search(r'level[:\s]+([^\s,]+)', ai_request) or re.search(r'\b(beginner|elementary|intermediate|upper-intermediate|advanced|a1|a2|b1|b2|c1|c2)\b', ai_request, re.IGNORECASE)
         duration_match = re.search(r'duration[:\s]+(\d+)', ai_request) or re.search(r'(\d+)\s*min', ai_request)
         type_match = re.search(r'type[:\s]+([^\s,]+)', ai_request)
         
@@ -353,7 +353,7 @@ class ActivityService:
         
         return ActivityRequest(
             topic=topic,
-            grade_level=grade_match.group(1) if grade_match else "3",
+            grade_level=level_match.group(1) if level_match else "intermediate",
             duration=int(duration_match.group(1)) if duration_match else 15,
             activity_type=type_match.group(1) if type_match else None,
             context=card_details.get('desc', '')[:500] if card_details.get('desc') else None
