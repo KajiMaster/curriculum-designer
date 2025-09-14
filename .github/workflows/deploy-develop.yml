@@ -55,7 +55,7 @@ jobs:
           echo "$CHANGED_FILES"
           
           # Check for ANY Lambda changes - if any Lambda changed, build and deploy ALL
-          if echo "$CHANGED_FILES" | grep -qE "^lambda/"; then
+          if echo "$CHANGED_FILES" | grep -qE "^(lambda/|webhook-handler/|lambda-deployments/)"; then
             echo "lambda=true" >> $GITHUB_OUTPUT
             echo "📦 Lambda changes detected - will build and deploy all Lambda functions"
           else
