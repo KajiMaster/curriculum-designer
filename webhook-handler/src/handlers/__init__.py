@@ -1,4 +1,4 @@
-"""Request handlers for webhook processing."""
+"""Request handlers for webhook processing with ESL support."""
 
 import logging
 import json
