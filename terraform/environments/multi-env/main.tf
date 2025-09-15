@@ -176,7 +176,7 @@ resource "aws_cloudwatch_log_group" "webhook_lambda_logs" {
     Project     = var.project_name
     Environment = var.environment
     ManagedBy   = "terraform"
-    LastUpdated = "2025-09-15"
+    LastUpdated = "2025-09-15-ESL-Ready"
   }
 }
 
