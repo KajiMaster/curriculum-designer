@@ -153,6 +153,7 @@ resource "aws_iam_role_policy" "github_actions_lambda_deploy" {
           "lambda:InvokeFunction",
           "lambda:CreateFunction",
           "lambda:DeleteFunction",
+          "lambda:ListVersionsByFunction",
           "lambda:GetLayerVersion",
           "lambda:ListLayers",
           "lambda:ListLayerVersions",
@@ -160,7 +161,7 @@ resource "aws_iam_role_policy" "github_actions_lambda_deploy" {
           "lambda:RemovePermission"
         ]
         Resource = [
-          "arn:aws:lambda:us-east-1:*:function:curriculum-designer-webhook-*",
+          "arn:aws:lambda:us-east-1:*:function:curriculum-designer-*",
           "arn:aws:lambda:us-east-1:*:function:curriculum-activity-generator*",
           "arn:aws:lambda:us-east-1:*:layer:curriculum-*"
         ]
