@@ -221,6 +221,7 @@ resource "aws_iam_role_policy" "github_actions_lambda_deploy" {
           "logs:CreateLogGroup",
           "logs:DeleteLogGroup",
           "logs:DescribeLogGroups",
+          "logs:ListTagsForResource",
           "logs:TagResource",
           "logs:UntagResource",
           "logs:PutRetentionPolicy"
