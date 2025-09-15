@@ -225,9 +225,7 @@ resource "aws_iam_role_policy" "github_actions_lambda_deploy" {
           "logs:UntagResource",
           "logs:PutRetentionPolicy"
         ]
-        Resource = [
-          "arn:aws:logs:us-east-1:*:log-group:/aws/lambda/curriculum-*"
-        ]
+        Resource = "*"
       },
       {
         Effect = "Allow"
