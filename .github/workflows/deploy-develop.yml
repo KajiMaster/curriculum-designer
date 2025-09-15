@@ -181,44 +181,19 @@ jobs:
       # Deploy manually when needed for global resources like activity generator
 
       # Deploy Multi-Environment Infrastructure 
-      - name: Skip Terraform - State Issues
+      - name: Deploy Multi-Environment Infrastructure
         if: needs.detect-changes.outputs.terraform_multi_env_changed == 'true' || needs.detect-changes.outputs.lambda_changed == 'true'
+        working-directory: terraform/environments/multi-env
         run: |
-          echo "⚠️  Skipping Terraform - CI/CD uses different state than local"
-          echo "📝 TODO: Fix S3 state backend configuration to use same state file"
-          echo "🔧 Resources exist in AWS, state management needs alignment"
+          echo "🏗️ Deploying multi-environment infrastructure..."
+          terraform init
+          terraform workspace select dev || terraform workspace new dev
+          terraform plan -var-file=dev.tfvars -out=tfplan
+          terraform apply -auto-approve tfplan
+          echo "✅ Multi-environment infrastructure deployed successfully"
 
-      # Use AWS CLI for Lambda deployments until Terraform state is fixed
-      - name: Update Lambda Functions via AWS CLI
-        if: needs.detect-changes.outputs.lambda_changed == 'true'
-        run: |
-          echo "🔄 Updating Lambda Functions via AWS CLI..."
-          
-          # Update webhook handler
-          if aws lambda get-function --function-name curriculum-designer-webhook-dev 2>/dev/null; then
-            echo "Updating webhook handler..."
-            aws lambda update-function-code \
-              --function-name curriculum-designer-webhook-dev \
-              --zip-file fileb://lambda-deployments/webhook-handler/deployment.zip
-              
-            aws lambda wait function-updated \
-              --function-name curriculum-designer-webhook-dev
-              
-            echo "✅ Webhook handler updated successfully"
-          fi
-          
-          # Update activity generator  
-          if aws lambda get-function --function-name curriculum-activity-generator 2>/dev/null; then
-            echo "Updating activity generator..."
-            aws lambda update-function-code \
-              --function-name curriculum-activity-generator \
-              --zip-file fileb://lambda-deployments/activity-generator/deployment.zip
-              
-            aws lambda wait function-updated \
-              --function-name curriculum-activity-generator
-              
-            echo "✅ Activity generator updated successfully"
-          fi
+      # Lambda functions are now deployed via Terraform above
+      # Terraform workspace dev has all resources properly tracked
 
   test-deployment:
     needs: [detect-changes, deploy-infrastructure]
