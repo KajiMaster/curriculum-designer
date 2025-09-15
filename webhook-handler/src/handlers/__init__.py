@@ -1,4 +1,4 @@
-"""Request handlers for webhook processing with ESL support."""
+"""Request handlers for webhook processing with ESL support for adult learners."""
 
 import logging
 import json
